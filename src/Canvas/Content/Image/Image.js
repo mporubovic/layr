@@ -2,7 +2,7 @@ import './Image.sass'
 import {forwardRef, memo} from "react";
 import {useEffect, useState} from "react";
 
-export default memo(function Image(props) {
+export default forwardRef((props, ref) => {
 
     const [width, setWidth] = useState(props.w)
 
@@ -38,8 +38,9 @@ export default memo(function Image(props) {
 
 
     return (
-        <img src={props.src} className="image" unselectable="true" style={{
-            width: width + 'px'
+        <img src={props.src} ref={ref} className="image" unselectable="true" draggable="false" style={{
+            width: width + 'px',
+            ...props.style
         }} />
     )
 })

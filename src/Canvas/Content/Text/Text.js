@@ -1,8 +1,8 @@
 import './Text.sass'
-import {memo} from "react";
+import {forwardRef, memo} from "react";
 import {useEffect, useState} from "react";
 
-export default memo(function Text(props) {
+export default forwardRef((props, ref) => {
 
     const [font, setFont] = useState(props.fontSize)
 
@@ -37,8 +37,10 @@ export default memo(function Text(props) {
     }, [props.delta])
 
     return (
-        <div className="text" style={{
-            fontSize: font + "px"
+        <div className="text" ref={ref}
+         style={{
+            fontSize: font + "px",
+            ...props.style
         }}>
             {props.text}
         </div>

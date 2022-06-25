@@ -1,21 +1,25 @@
-
 .resizer
     $color: yellow
-    $offset: 15px
-    $padding: 10px
+    $offset: 25px
+    $padding: 20px
     $size: 10px
     $thickness: 1.5px
 
     position: absolute
 
+    z-index: -1
+
     top: -$offset
     left: -$offset
     height: calc(100% + 2 * #{$offset})
     width: calc(100% + 2 * #{$offset})
-    //box-shadow: 0 0 0 $size $color
+
+    display: grid
+    grid-template-rows: $offset auto $offset
+    grid-template-columns: $offset auto $offset
+    grid-template-areas: "tl t tr" "l m r" "bl b br"
 
     //background-color: rgba(255,0,0,0.3)
-    cursor: move
 
     .blCorner, .brCorner, .tlCorner, .trCorner
         position: absolute
@@ -23,27 +27,25 @@
         width: $size
         border-radius: calc(#{$size} / 2)
         box-shadow: 0 0 0 $thickness $color
+        z-index: -1
 
     .blCorner
         bottom: calc(#{$size} / -2 + #{$padding})
         left: calc(#{$size} / -2 + #{$padding})
-        cursor: sw-resize
     .brCorner
         bottom: calc(#{$size} / -2 + #{$padding})
         right: calc(#{$size} / -2 + #{$padding})
-        cursor: se-resize
     .tlCorner
         top: calc(#{$size} / -2 + #{$padding})
         left: calc(#{$size} / -2 + #{$padding})
-        cursor: nw-resize
     .trCorner
         top: calc(#{$size} / -2 + #{$padding})
         right: calc(#{$size} / -2 + #{$padding})
-        cursor: ne-resize
 
     .left, .right, .top, .bottom
         background-color: $color
         position: absolute
+        z-index: -1
 
     .left, .right
         width: $thickness

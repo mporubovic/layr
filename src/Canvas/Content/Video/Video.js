@@ -1,7 +1,7 @@
 import './Video.sass'
-import {memo, useEffect, useState} from "react";
+import {forwardRef, memo, useEffect, useState} from "react";
 
-export default function Video(props) {
+export default forwardRef((props, ref) => {
 
     const [width, setWidth] = useState(props.w)
 
@@ -38,15 +38,12 @@ export default function Video(props) {
 
     return (
         <video autoPlay controls loop muted
+               ref={ref}
                className="video" src={props.src}
                style={{
-                   width: width + "px"
+                   width: width + "px",
+                   ...props.style
                }}
         />
     )
-}
-
-
-
-
-//
+})

@@ -1,28 +1,104 @@
+import {useRef, useEffect} from "react";
 import style from './Resizer.module.sass'
-
 
 export default function Resizer(props) {
 
+    const pointerDownRef = useRef(false)
+    const cornerRef = useRef(null)
+    const div = useRef()
+    const resizing = pointerDownRef.current
+
     function corner(c) {
+        if (resizing) return
+
+        cornerRef.current = c
         let cursor
 
+        switch (c) {
+            case "tl":
+            case "br":
+                cursor = "nwse-resize"
+                break
+            case "tr":
+            case "bl":
+                cursor = "nesw-resize"
+                break
+            case "t":
+            case "b":
+                cursor = "ns-resize"
+                break
+            case "l":
+            case "r":
+                cursor = "ew-resize"
+                break
+            case "m":
+                cursor = "move"
+                break
+            default:
+                console.warn("Wrong corner", c)
+        }
+
+        document.body.style.cursor = cursor
 
     }
 
+    function onPointerDown() {
+        pointerDownRef.current = true
+        props.pointerDown()
+    }
+
+    function onPointerUp() {
+        pointerDownRef.current = false
+        cornerRef.current = null
+        document.body.style.cursor = ""
+        props.pointerUp()
+    }
+
+    function onPointerMove(e) {
+        if (pointerDownRef.current) {
+            props.pointerMove(e.movementX, e.movementY, cornerRef.current)
+        }
+
+    }
+
+    useEffect(() => {
+        window.addEventListener("pointermove", onPointerMove)
+        div.current.addEventListener("pointerdown", onPointerDown)
+        window.addEventListener("pointerup", onPointerUp)
+
+        return () => {
+            // console.log("cursor set to null")
+            document.body.style.cursor = ""
+            window.removeEventListener("pointermove", onPointerMove)
+            window.removeEventListener("pointerup", onPointerUp)
+        }
+    }, [])
+
 
     return (
-        <div className={style.resizer}>
+        <div className={style.resizer} ref={div}>
 
-            <div className={style.tlCorner} onMouseEnter={() => props.corner("tl")} />
-            <div className={style.trCorner} onMouseEnter={() => props.corner("tr")} />
-            <div className={style.blCorner} onMouseEnter={() => props.corner("bl")} />
-            <div className={style.brCorner} onMouseEnter={() => props.corner("br")} />
+            <div onMouseEnter={() => corner("tl")} />
+            <div onMouseEnter={() => corner("t")} />
+            <div onMouseEnter={() => corner("tr")} />
+
+            <div onMouseEnter={() => corner("l")} />
+            <div onMouseEnter={() => corner("m")} />
+            <div onMouseEnter={() => corner("r")} />
+
+            <div onMouseEnter={() => corner("bl")} />
+            <div onMouseEnter={() => corner("b")} />
+            <div onMouseEnter={() => corner("br")} />
+
+            <div className={style.tlCorner} />
+            <div className={style.trCorner} />
+            <div className={style.blCorner} />
+            <div className={style.brCorner} />
 
             <div className={style.left} />
             <div className={style.right} />
             <div className={style.top} />
             <div className={style.bottom} />
-
 
         </div>
     )
