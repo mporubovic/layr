@@ -1,0 +1,19 @@
+
+.container
+    position: absolute
+    right: 0
+    height: 100vh
+    width: 100vw
+    overflow: hidden
+    display: flex
+    align-items: center
+    justify-content: center
+
+    .canvas
+        $grid-lines: #484848
+        background-color: #3b3b3b
+        background-size: 40px 40px
+        background-image: linear-gradient(to right, $grid-lines 1px, transparent 1px), linear-gradient(to bottom, $grid-lines 1px, transparent 1px)
+        min-height: 1500%
+        min-width: 1500%
+
