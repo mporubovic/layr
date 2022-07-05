@@ -1,46 +1,13 @@
 import './Image.sass'
-import {forwardRef, memo} from "react";
-import {useEffect, useState} from "react";
+import {forwardRef} from "react";
 
 export default forwardRef((props, ref) => {
 
-    const [width, setWidth] = useState(props.w)
-
-    useEffect(() => {
-        let w
-
-        switch (props.delta.corner) {
-            case "br":
-                w = width + props.delta.dx
-                break
-
-            case "tr":
-                w = width - props.delta.dy
-                break
-
-            case "tl":
-                w = width - props.delta.dx
-                break
-
-            case "bl":
-                w = width - props.delta.dx
-                break
-            default:
-                w = props.w
-        }
-
-        setWidth(w)
-        props.change({w})
-
-
-
-    }, [props.delta])
-
-
     return (
-        <img src={props.src} ref={ref} className="image" unselectable="true" draggable="false" style={{
-            width: width + 'px',
-            ...props.style
-        }} />
+        <img src={props.src} ref={ref} className="image" unselectable="true" draggable="false"
+             style={{
+                ...props.style
+             }}
+        />
     )
 })

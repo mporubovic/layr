@@ -3,23 +3,21 @@
     $offset: 25px
     $padding: 20px
     $size: 10px
-    $thickness: 1.5px
+    $thickness: 2px
 
     position: absolute
 
-    z-index: -1
+    left: 0
+    top: 0
 
-    top: -$offset
-    left: -$offset
-    height: calc(100% + 2 * #{$offset})
-    width: calc(100% + 2 * #{$offset})
+    z-index: 0
 
     display: grid
     grid-template-rows: $offset auto $offset
     grid-template-columns: $offset auto $offset
     grid-template-areas: "tl t tr" "l m r" "bl b br"
 
-    //background-color: rgba(255,0,0,0.3)
+    background-color: rgba(255,0,0,0.3)
 
     .blCorner, .brCorner, .tlCorner, .trCorner
         position: absolute

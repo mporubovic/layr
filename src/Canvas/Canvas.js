@@ -3,9 +3,17 @@ import {useEffect, useRef, useState} from "react";
 import Content from "./Content/Content";
 import _boards from './demo.js'
 import useStateRef from "react-usestateref";
+import Resizer from "./Content/Resizer/Resizer";
 
 const boards = JSON.parse(localStorage.getItem("boards")) ?? _boards
 _boards[0] = boards[0]
+
+boards[0].content.forEach(c => {
+    c.local = {
+        ref: null,
+        mouseIn: false
+    }
+})
 
 export default function Canvas() {
 
@@ -17,8 +25,19 @@ export default function Canvas() {
 
     const [x, setX, xRef] = useStateRef(0)
     const [y, setY, yRef] = useStateRef(0)
-
     const [scale, setScale, scaleRef] = useStateRef(1)
+
+    const [currentResizingContentId, setCurrentResizingContentId] = useState(false)
+
+    const [metaDown, setMetaDown] = useState(false)
+    const [mouseIn, setMouseIn, mouseInRef] = useStateRef(null)
+
+    const onKeyDown = (e) => e.key === "Meta" && setMetaDown(true)
+    const onKeyUp = (e) => e.key === "Meta" && setMetaDown(false)
+
+    const showResizer = (metaDown && (mouseIn || currentResizingContentId))
+
+    const [resizeDelta, setResizeDelta] = useState(null)
 
     function onWheel(e) {
         e.preventDefault()
@@ -57,19 +76,58 @@ export default function Canvas() {
         setY(yRef.current + y)
     }
 
+    const onMouseEnter = (c) => setMouseIn(c.id)
+    const onMouseLeave = () => setMouseIn(null)
+
     useEffect(() => {
         window.addEventListener("wheel", onWheel, {passive: false})
+        window.addEventListener("keydown", onKeyDown)
+        window.addEventListener("keyup", onKeyUp)
+
+        boards[0].content.forEach(c => {
+            c.local.ref.addEventListener("mouseenter", () => onMouseEnter(c))
+            // c.local.ref.addEventListener("mouseleave", onMouseLeave)
+        })
 
         return () => {
             window.removeEventListener("wheel", onWheel)
+            window.removeEventListener("keydown", onKeyDown)
+            window.removeEventListener("keyup", onKeyUp)
+
+            boards[0].content.forEach(c => {
+                c.local.ref.removeEventListener("mouseenter", () => onMouseEnter(c))
+                // c.local.ref.removeEventListener("mouseleave", onMouseLeave)
+            })
         }
     }, [])
 
 
+    function startResize() {
+        setCurrentResizingContentId(mouseInRef.current)
+    }
 
+    function onResize(dx, dy, corner) {
+        setResizeDelta({dx, dy, corner})
+    }
 
-    const [currentResizingContentId, setCurrentResizingContentId] = useState(false)
+    function stopResize() {
+        setCurrentResizingContentId(null)
+        setResizeDelta(null)
 
+        // save
+
+        //     if (resizing.current) {
+        //         resizing.current = false
+        //         props.stopResize()
+        //
+        //         let c = boards[0].content.find(c => c.id === content.id)
+        //         c.x = xRef.current
+        //         c.y = yRef.current
+        //         c.scale = scaleRef.current
+        //
+        //         localStorage.setItem("boards", JSON.stringify(boards))
+        //     }
+    }
 
     return (
         <div className="container">
@@ -78,19 +136,31 @@ export default function Canvas() {
             }}>
 
                 {
+
                     boards[0].content.map(c => (
-                            <Content key={c.id}
+                            <Content key={c.id} ref={(r) => c.local.ref = r}
                                      content={c}
-                                     startResize={() => setCurrentResizingContentId(c.id)}
-                                     stopResize={() => setCurrentResizingContentId(false)}
                                      lock={currentResizingContentId && currentResizingContentId !== c.id}
                                      canvasScale={scale}
+                                     resizeDelta={currentResizingContentId === c.id && resizeDelta}
                             />
                         )
                     )
                 }
 
             </div>
+
+            {
+                showResizer &&
+                (<Resizer
+                    contentId={mouseIn || currentResizingContentId}
+                    onMouseLeave={onMouseLeave}
+                    canvas={{x, y, scale}}
+                    pointerMove={onResize}
+                    pointerUp={stopResize}
+                    pointerDown={startResize}
+                />)
+            }
         </div>
     )
 }

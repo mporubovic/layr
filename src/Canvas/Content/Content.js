@@ -1,87 +1,67 @@
 import './Content.sass'
 
-import {useEffect, useRef, useState, memo} from "react";
-
-import Resizer from "./Resizer/Resizer";
+import {useEffect, useRef, memo, forwardRef, useImperativeHandle} from "react";
 
 import useStateRef from "react-usestateref";
-import boards from '../demo.js'
-
 import Video from "./Video/Video";
 import Image from "./Image/Image";
 import Text from "./Text/Text";
 
 const components = {
-    "image": Image,
-    "video": Video,
-    "text": Text,
+    image: Image,
+    video: Video,
+    text: Text,
 }
 
-export default memo(function Content(props) {
+export default memo(forwardRef((props, inRef) => {
+
+    const contentRef = useRef()
+    useImperativeHandle(inRef, () => contentRef.current, [contentRef])
+    // https://stackoverflow.com/questions/57278120/using-react-callback-ref-with-forwarded-ref
 
     const content = props.content
 
-    const contentDiv = useRef()
     const contentWrapperDiv = useRef()
-
-    const [metaDown, setMetaDown] = useState(false)
-
-    const resizing = useRef(false)
-    const [mouseIn, setMouseIn] = useState(false)
-    const resizeActive = ((metaDown && mouseIn) || resizing.current) && !props.lock
 
     const [x, setX, xRef] = useStateRef(content.x)
     const [y, setY, yRef] = useStateRef(content.y)
-    const [delta, setDelta, deltaRef] = useStateRef({})
+    const [scale, setScale, scaleRef] = useStateRef(content.scale)
 
-    function onKeydown(e) {
-        if (e.key === "Meta") setMetaDown(true)
-    }
-
-    function onKeyup(e) {
-        if (e.key === "Meta") setMetaDown(false)
-    }
-
-    function onPointerDown() {
-        if (!resizing.current) {
-            resizing.current = true
-            props.startResize()
-        }
-    }
-
-    function onPointerMove(movementX, movementY, corner) {
-
-        if (!resizing.current) return
+    function resize() {
+        if (!props.resizeDelta) return
 
         let x = xRef.current
         let y = yRef.current
-        let dx = (movementX/props.canvasScale)
-        let dy = (movementY/props.canvasScale)
-        
-        setDelta({
-            dx,
-            dy,
-            corner
-        })
+        let dx = (props.resizeDelta.dx/props.canvasScale)
+        let dy = (props.resizeDelta.dy/props.canvasScale)
 
-        let rect = contentDiv.current.getBoundingClientRect()
+        let rect = contentRef.current.getBoundingClientRect()
         let aspect = rect.width/rect.height
 
-        switch (corner) {
+        switch (props.resizeDelta.corner) {
             case "br":
+                setScale(scaleRef.current + (props.resizeDelta.dy)*scaleRef.current/rect.height)
                 break
 
             case "tr":
-                setY(y + dy/aspect)
+                setScale(scaleRef.current - (props.resizeDelta.dy)*scaleRef.current/rect.height)
+                // setScale(scaleRef.current - dy*scaleRef.current/rect.height)
+                setY(y + dy)
+                // console.log(dy, scaleRef.current, rect.height, dy*scaleRef.current)
+                // setY(y - dy*scaleRef.current/rect.height)
                 break
 
             case "tl":
-                setX(x + dx)
-                setY(y + dx/aspect)
+                setX(x + dy)
+                setY(y + dy)
+                // setScale(scaleRef.current - )
+
                 break
 
             case "bl":
-                setX(x + dx)
+                console.log()
+                setScale(scaleRef.current + (props.resizeDelta.dy)*scaleRef.current/rect.height)
+                setX(x - ((props.resizeDelta.dy)*scaleRef.current/rect.height)*rect.width)
                 break
 
             case "t":
@@ -94,62 +74,24 @@ export default memo(function Content(props) {
                 setX(x + dx)
                 setY(y + dy)
         }
-
-
-    }
-
-    function onPointerUp() {
-        if (resizing.current) {
-            resizing.current = false
-            props.stopResize()
-
-            let c = boards[0].content.find(c => c.id === content.id)
-            c.x = xRef.current
-            c.y = yRef.current
-
-            localStorage.setItem("boards", JSON.stringify(boards))
-        }
-    }
-
-    function updateContentProperties(props) {
-        let c = boards[0].content.findIndex(c => c.id === content.id)
-        boards[0].content[c] = {...boards[0].content[c], ...props}
     }
 
     useEffect(() => {
-        window.addEventListener("keydown", onKeydown)
-        window.addEventListener("keyup", onKeyup)
-
-        return () => {
-            window.removeEventListener("keydown", onKeydown)
-            window.removeEventListener("keyup", onKeyup)
-        }
-    })
+        resize()
+    }, [props.resizeDelta])
 
     const Component = components[content.type]
 
     return (
         <div className="content" ref={contentWrapperDiv}
              style={{
-                 transform: `translate(${x}px, ${y}px)`,
+                 transform: `translate(${x}px, ${y}px) scale(${scale})`,
              }}
-             onMouseEnter={() => setMouseIn(true)}
-             onMouseLeave={() => setMouseIn(false)}
         >
             {
-                <Component ref={contentDiv} {...content} delta={delta} change={updateContentProperties}
-                     style={{...(props.lock || resizeActive) && { pointerEvents: "none", userSelect: "none"}}}
+                <Component ref={contentRef} {...content}
+                     style={{...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
                 />
-            }
-
-            {
-                resizeActive &&
-                (<Resizer
-                          scale={props.canvasScale}
-                          pointerMove={onPointerMove}
-                          pointerUp={onPointerUp}
-                          pointerDown={onPointerDown}
-                />)
             }
 
 
@@ -159,4 +101,4 @@ export default memo(function Content(props) {
 
 
     )
-})
+}))
