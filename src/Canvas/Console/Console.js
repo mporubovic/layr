@@ -3,6 +3,7 @@ import {useEffect, useRef, useState} from "react";
 import contentTypes from "../Content/contentTypes";
 import useStateRef from "react-usestateref";
 import axios from "axios";
+import _ from "lodash";
 
 export default function Console(props) {
 
@@ -22,11 +23,23 @@ export default function Console(props) {
 
     const renderResults = () => {
         if (inputRef.current && inputRef.current[0] === "/") {
+            let inpt = inputRef.current.split(" ")
+            let command = inpt[0].replace("/", "").toLowerCase()
+            let args = inpt.slice(1, inpt.length)
+
             let _results =
                 Object.keys(commands)
-                    .filter(k => k.indexOf(inputRef.current.slice(1, inputRef.current.length)) === 0)
+                    .filter(k => k.indexOf(command) === 0)
                     .reduce((arr, key) => {
-                        arr.push(commands[key])
+                        let cmnd = _.cloneDeep(commands[key])
+
+                        if (command === "concept" && args.length !== 0) {
+                            let name = args.reduce((a, b) => a+" "+b)
+                            cmnd.name = `Concept "${name}"`
+                            cmnd.callback = () => props.createConcept(name)
+                        }
+
+                        arr.push(cmnd)
                         return arr
                     }, [])
 
@@ -47,10 +60,16 @@ export default function Console(props) {
     const onKeyDown = (e) => {
         switch (e.key) {
             case "ArrowDown":
-                setHighlightResult((s) => Math.min(resultsRef.current.length-1, s + 1))
+                setHighlightResult((s) => {
+                    if (s + 1 > resultsRef.current.length-1) return 0
+                    else return s+1
+                })
                 break
             case "ArrowUp":
-                setHighlightResult((s) => Math.max(0, s - 1))
+                setHighlightResult((s) => {
+                    if (s - 1 < 0) return resultsRef.current.length-1
+                    else return s-1
+                })
                 break
             case "Backspace":
                 setInput((i) => i.slice(0, i.length-1))
@@ -63,9 +82,16 @@ export default function Console(props) {
             case "Escape":
                 props.close()
                 break
+            case "Tab":
+                e.preventDefault()
 
+                if (resultsRef.current.length > 0) {
+                    setInput("/" + resultsRef.current[highlightResultRef.current].name.toLowerCase() + " ")
+                }
+
+                break
             default:
-                if (e.key.length === 1 && e.key.match(/[\w\d/]/i)) {
+                if (e.key.length === 1 && e.key.match(/[\w\d /]/i)) {
                     setInput((i) => i + e.key)
                     setHighlightResult(0)
                 }
@@ -80,7 +106,7 @@ export default function Console(props) {
             let concepts = r.data
             concepts.forEach(c => c.callback = () => { props.openConcept(c._id) })
 
-            concepts[0].callback()
+            // concepts[0].callback()
 
             setResults(concepts)
         }).catch(console.error)

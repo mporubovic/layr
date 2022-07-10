@@ -328,7 +328,7 @@ export default function Canvas() {
 
         apiTimeout.current = setTimeout(() => {
             console.log("Posting to backend")
-            axios.post(window.apiURL + "concepts", {
+            axios.put(window.apiURL + "concepts", {
                 concept: data
             })
         }, 1000)
@@ -355,12 +355,24 @@ export default function Canvas() {
         postUpdatedConcept(conceptRef.current)
     }
 
-    function createConcept() {
+    function createConcept(name) {
+        let c = {
+            name: name ?? "New concept",
+            content: []
+        }
+
+        axios.post(window.apiURL + 'concepts', {concept: c}).then((r) => {
+            setConcept(r.data)
+            setShowConsole(false)
+        })
 
     }
 
     return (
         <div className="container">
+            {
+                concept && (<div className="title">{ concept.name }</div>)
+            }
             <div className="canvas" ref={div} style={{
                 transform: `translate(${x}px, ${y}px) scale(${scale})`
             }}>
