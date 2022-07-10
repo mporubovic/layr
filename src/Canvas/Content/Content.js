@@ -3,15 +3,8 @@ import './Content.sass'
 import {useEffect, useRef, memo, forwardRef, useImperativeHandle} from "react";
 
 import useStateRef from "react-usestateref";
-import Video from "./Video/Video";
-import Image from "./Image/Image";
-import Text from "./Text/Text";
 
-const components = {
-    image: Image,
-    video: Video,
-    text: Text,
-}
+import components from './contentTypes'
 
 export default memo(forwardRef((props, inRef) => {
 
@@ -74,6 +67,8 @@ export default memo(forwardRef((props, inRef) => {
                 setX(x + dx)
                 setY(y + dy)
         }
+
+        props.update({x: xRef.current, y: yRef.current, scale: scaleRef.current})
     }
 
     useEffect(() => {
@@ -89,7 +84,7 @@ export default memo(forwardRef((props, inRef) => {
              }}
         >
             {
-                <Component ref={contentRef} {...content}
+                <Component ref={contentRef} {...content} lock={props.lock} update={props.update}
                      style={{...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
                 />
             }

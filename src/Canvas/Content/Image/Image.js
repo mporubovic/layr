@@ -3,8 +3,10 @@ import {forwardRef} from "react";
 
 export default forwardRef((props, ref) => {
 
+    const src = (props.src.includes("data") ? "" : window.apiURL) + props.src
+
     return (
-        <img src={props.src} ref={ref} className="image" unselectable="true" draggable="false"
+        <img src={src} ref={ref} className="image" unselectable="true" draggable="false"
              style={{
                 ...props.style
              }}

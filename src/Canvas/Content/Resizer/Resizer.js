@@ -1,8 +1,6 @@
 import {useRef, useEffect} from "react";
 import style from './Resizer.module.sass'
 
-import boards from '../../demo.js'
-
 export default function Resizer(props) {
 
     const outerPadding = 20
@@ -13,8 +11,7 @@ export default function Resizer(props) {
     const div = useRef()
     const resizing = pointerDownRef.current
 
-    const content = boards[0].content.find(c => c.id === props.contentId)
-    const contentRect = content.local.ref.getBoundingClientRect()
+    const contentRect = props.content.local.ref.getBoundingClientRect()
 
     function corner(c) {
         if (resizing) return

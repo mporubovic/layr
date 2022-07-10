@@ -5,7 +5,8 @@ export default forwardRef((props, ref) => {
     return (
         <video autoPlay controls loop muted
                ref={ref}
-               className="video" src={props.src}
+               className="video"
+               src={window.apiURL + props.src}
                style={{
                    ...props.style
                }}
