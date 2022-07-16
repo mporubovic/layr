@@ -11,16 +11,7 @@ import axios from "axios";
 
 import _ from "lodash"
 import Video from "./Content/Video/Video";
-
-// const _boards = JSON.parse(localStorage.getItem("boards")) ?? defaultBoards
-// defaultBoards[0] = _concept
-
-// _concept.content.forEach(c => {
-//     c.local = {
-//         ref: null,
-//         mouseIn: false
-//     }
-// })
+import TWEEN from "@tweenjs/tween.js";
 
 export default function Canvas() {
 
@@ -48,6 +39,7 @@ export default function Canvas() {
     const apiTimeout = useRef(null)
 
     const backspaceCounter = useRef(0)
+    const clickTimeStamp = useRef(0)
 
     const onKeyDown = (e) => {
         e.key === "Meta" && setMetaDown(true)
@@ -127,6 +119,48 @@ export default function Canvas() {
         }
     }
 
+    const centerContentOnScreen = (c) => {
+        const animationTime = 300
+
+        let rect = c.local.ref.getBoundingClientRect()
+
+        let windowAspect = window.innerWidth / window.innerHeight
+        let contentAspect = rect.width / rect.height
+
+        let dScale = contentAspect > windowAspect ? (0.8 * window.innerWidth) / rect.width : (0.8 * window.innerHeight) / rect.height
+
+        let nextScale = scaleRef.current * dScale
+
+        let nextx = (window.innerWidth/2 + xRef.current - (rect.x + rect.width/2))*dScale
+        let nexty = (window.innerHeight/2 + yRef.current - (rect.y + rect.height/2))*dScale
+
+        const dimensions = {x: xRef.current, y: yRef.current, scale: scaleRef.current}
+
+        let tween = new TWEEN.Tween(dimensions)
+                                .to({x: nextx, y: nexty, scale: nextScale}, animationTime)
+                                .easing(TWEEN.Easing.Quadratic.Out)
+                                .onUpdate(() => {
+                                    setX(dimensions.x)
+                                    setY(dimensions.y)
+                                    setScale(dimensions.scale)
+                                })
+        tween.start()
+    }
+
+    const onClick = (e) => {
+        let delta = e.timeStamp - clickTimeStamp.current
+
+        if (delta < 200) { // double-click
+            let first = e.composedPath()[0]
+            let c = conceptRef.current.content.find(c => c.local.ref === first)
+            if (c) centerContentOnScreen(c)
+        }
+
+        clickTimeStamp.current = e.timeStamp
+    }
+
+
+
     const onDrop = (e) => {
         e.preventDefault()
 
@@ -135,7 +169,6 @@ export default function Canvas() {
             for (let i of e.dataTransfer.items) {
                 if (i.kind === "file") {
                     let file = i.getAsFile()
-                    console.log(file)
                     if (file.type.match(/(image|video)/i)) {
 
                         const formData = new FormData()
@@ -164,7 +197,6 @@ export default function Canvas() {
                                     else if (file.type.includes("video")) {
                                         let vid = document.createElement("video")
                                         vid.src = data.target.result
-                                        console.log(data)
 
                                         vid.onloadedmetadata = () => {
                                             let scale = window.innerWidth / (5 * vid.videoWidth)
@@ -207,6 +239,7 @@ export default function Canvas() {
         window.addEventListener("mousemove", onMouseMove)
         window.addEventListener("drop", onDrop)
         window.addEventListener("dragover", onDragOver)
+        window.addEventListener("click", onClick)
 
         concept && concept.content.forEach(c => {
             c.local.ref?.addEventListener("mouseenter", () => onMouseEnter(c))
@@ -220,6 +253,8 @@ export default function Canvas() {
             window.removeEventListener("mousemove", onMouseMove)
             window.removeEventListener("drop", onDrop)
             window.removeEventListener("dragover", onDragOver)
+            window.removeEventListener("click", onClick)
+
 
             concept && concept.content.forEach(c => {
                 c.local.ref?.removeEventListener("mouseenter", () => onMouseEnter(c))
