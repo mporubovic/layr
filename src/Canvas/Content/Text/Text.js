@@ -1,5 +1,5 @@
 import './Text.sass'
-import {forwardRef, useState} from "react";
+import {forwardRef, useEffect, useState} from "react";
 
 export default forwardRef((props, ref) => {
 
@@ -12,15 +12,19 @@ export default forwardRef((props, ref) => {
         setText(t)
     }
 
+    useEffect(() => {
+        ref.current.innerHTML = text
+    }, [ref])
+
     return (
         <div contentEditable={!props.lock} suppressContentEditableWarning={true}
-             className="text" ref={ref} onBlur={e => changeText(e.target.innerText)}
+             className="text" ref={ref} onBlur={e => changeText(e.target.innerHTML)}
              style={{
                 fontSize: font + "px",
                 ...props.style
             }}
         >
-            {text}
+
         </div>
     )
 })
