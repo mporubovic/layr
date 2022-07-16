@@ -91,7 +91,7 @@ export default function Console(props) {
 
                 break
             default:
-                if (e.key.length === 1 && e.key.match(/[\w\d /]/i)) {
+                if (e.key.length === 1 && e.key.match(/[\w\d.\- /]/i)) {
                     setInput((i) => i + e.key)
                     setHighlightResult(0)
                 }
