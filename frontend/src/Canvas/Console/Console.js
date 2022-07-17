@@ -4,6 +4,8 @@ import contentTypes from "../Content/contentTypes";
 import useStateRef from "react-usestateref";
 import axios from "axios";
 import _ from "lodash";
+import Frontend from "../../frontend";
+import Backend from "../../../../backend/config.js"
 
 export default function Console(props) {
 
@@ -102,9 +104,9 @@ export default function Console(props) {
     }
 
     function retrieveConcepts() {
-        axios.get(window.apiURL + "concepts").then((r) => {
-            let concepts = r.data
-            concepts.forEach(c => c.callback = () => { props.openConcept(c._id) })
+        Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.LIST).then((r) => {
+            let concepts = r.data.data
+            concepts.forEach(c => c.callback = () => { props.openConcept(c.id) })
 
             concepts[1].callback()
 

@@ -11,6 +11,8 @@ import axios from "axios";
 
 import _ from "lodash"
 import TWEEN from "@tweenjs/tween.js";
+import Frontend from "../frontend";
+import Backend from "../../../backend/config.js";
 
 export default function Canvas() {
 
@@ -35,7 +37,7 @@ export default function Canvas() {
     const mousePosition = useRef({x: window.innerWidth/2, y: window.innerHeight/2})
 
     const [concept, setConcept, conceptRef] = useStateRef(null)
-    const apiTimeout = useRef(null)
+    const backendTimeout = useRef(null)
 
     const backspaceCounter = useRef(0)
     const clickTimeStamp = useRef(0)
@@ -334,6 +336,8 @@ export default function Canvas() {
 
         if (["Image", "Video"].indexOf(c.content[idx].type) !== -1) {
             axios.delete(window.apiURL + "content/" + c.content[idx].src)
+
+            // Frontend.request(Operation)
         }
 
         c.content.splice(idx, 1)
@@ -354,24 +358,25 @@ export default function Canvas() {
         })
 
 
-        sendToApi(_c)
+        sendToBackend(_c)
     }
 
-    function sendToApi(data) {
-        if (apiTimeout.current) clearTimeout(apiTimeout.current)
+    function sendToBackend(data) {
+        if (backendTimeout.current) clearTimeout(backendTimeout.current)
 
-        apiTimeout.current = setTimeout(() => {
+        backendTimeout.current = setTimeout(() => {
             console.log("Posting to backend")
-            axios.put(window.apiURL + "concepts", {
-                concept: data
+            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: data}).then((r) => {
+                if (r.data.status === Backend.Status.ERROR) console.warn(r.data.error)
             })
         }, 1000)
     }
 
     function openConcept(id) {
         setShowConsole(false)
-        axios.get(window.apiURL + `concept/${id}`).then((r) => {
-            let _concept = r.data
+        Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.ONE, {concept: {id}}).then((r) => {
+            let _concept = r.data.data
+            _concept.content = JSON.parse(_concept.content)
             _concept.content.forEach(c => {
                 c.local = {
                     id: uuidv4(),
@@ -395,7 +400,7 @@ export default function Canvas() {
             content: []
         }
 
-        axios.post(window.apiURL + 'concepts', {concept: c}).then((r) => {
+        Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.CREATE, {concept: c}).then((r) => {
             setConcept(r.data)
             setShowConsole(false)
         })
