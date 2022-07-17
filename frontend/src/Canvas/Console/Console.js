@@ -106,7 +106,7 @@ export default function Console(props) {
             let concepts = r.data
             concepts.forEach(c => c.callback = () => { props.openConcept(c._id) })
 
-            // concepts[0].callback()
+            concepts[1].callback()
 
             setResults(concepts)
         }).catch(console.error)
@@ -139,7 +139,7 @@ export default function Console(props) {
                             }}
                         >
                             { r.icon && (<img src={r.icon} />) }
-                            <span>{r.name}</span>
+                            <span style={{ marginLeft: r.icon && "20px" }}>{r.name}</span>
                         </div>)
                     )
                 }

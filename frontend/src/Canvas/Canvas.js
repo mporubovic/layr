@@ -10,7 +10,6 @@ import {v4 as uuidv4} from "uuid"
 import axios from "axios";
 
 import _ from "lodash"
-import Video from "./Content/Video/Video";
 import TWEEN from "@tweenjs/tween.js";
 
 export default function Canvas() {
