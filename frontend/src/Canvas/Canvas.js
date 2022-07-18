@@ -1,18 +1,16 @@
 import './Canvas.sass'
 import {useEffect, useRef, useState} from "react";
 import Content from "./Content/Content";
-// import defaultBoards from './demo.js'
 import useStateRef from "react-usestateref";
 import Resizer from "./Content/Resizer/Resizer";
 import Console from "./Console/Console";
 import contentTypes from "./Content/contentTypes";
 import {v4 as uuidv4} from "uuid"
-import axios from "axios";
 
 import _ from "lodash"
 import TWEEN from "@tweenjs/tween.js";
 import Frontend from "../frontend";
-import Backend from "../../../backend/config.js";
+import * as Backend from "../../../backend/config.js";
 
 export default function Canvas() {
 
@@ -177,9 +175,10 @@ export default function Canvas() {
 
                         let reader = new FileReader()
 
-                        axios.post(window.apiURL + 'content', formData, {headers: {"Content-Type": "multipart/form-data"}})
+                        Frontend.fileRequest(Backend.Endpoint.CONTENT, Backend.Operation.CREATE, formData)
                             .then((r) => {
-                                let url = r.data
+                                if (r.data.status === Backend.Status.ERROR) return console.warn(r.data.error)
+                                let url = r.data.data
 
                                 reader.onload = (data) => {
 
@@ -335,9 +334,7 @@ export default function Canvas() {
         let idx = conceptRef.current.content.findIndex(c => c.local.id === id)
 
         if (["Image", "Video"].indexOf(c.content[idx].type) !== -1) {
-            axios.delete(window.apiURL + "content/" + c.content[idx].src)
-
-            // Frontend.request(Operation)
+            Frontend.request(Backend.Endpoint.CONTENT, Backend.Operation.DELETE, { content: {src: c.content[idx].src} })
         }
 
         c.content.splice(idx, 1)
@@ -366,6 +363,7 @@ export default function Canvas() {
 
         backendTimeout.current = setTimeout(() => {
             console.log("Posting to backend")
+            data.content = JSON.stringify(data.content)
             Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: data}).then((r) => {
                 if (r.data.status === Backend.Status.ERROR) console.warn(r.data.error)
             })
@@ -397,11 +395,12 @@ export default function Canvas() {
     function createConcept(name) {
         let c = {
             name: name ?? "New concept",
-            content: []
+            content: JSON.stringify([])
         }
 
         Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.CREATE, {concept: c}).then((r) => {
-            setConcept(r.data)
+            r.data.data.content = JSON.parse(r.data.data.content)
+            setConcept(r.data.data)
             setShowConsole(false)
         })
 

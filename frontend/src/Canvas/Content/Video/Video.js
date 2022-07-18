@@ -1,9 +1,8 @@
 import './Video.sass'
 import {forwardRef} from "react";
+import * as Backend from "../../../../../backend/config.js"
 
 export default forwardRef((props, ref) => {
-
-
 
     return (
         <video controls loop
@@ -11,7 +10,7 @@ export default forwardRef((props, ref) => {
                onMouseOut={(e) => e.target.pause()}
                ref={ref}
                className="video"
-               src={window.apiURL + props.src}
+               src={Backend.Server.EXTERNAL_CONTENT_URL + "/" + props.src}
                style={{
                    ...props.style
                }}

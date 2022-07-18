@@ -1,6 +1,12 @@
-const connection = require("../connection")
-const fs = require("fs")
-const defaultConcepts = require("./concepts.json");
+import connection from "../connection.js";
+import fs from "fs";
+
+
+// https://stackoverflow.com/a/65402918
+import { createRequire } from "module"
+const require = createRequire(import.meta.url)
+const defaultConcepts = require("./concepts.json")
+
 const sql = fs.readFileSync('./schema.sql', 'utf8')
 
 connection.connect()

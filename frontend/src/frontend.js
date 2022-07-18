@@ -1,12 +1,22 @@
 import axios from "axios";
-import Backend from "../../backend/config.js"
+import * as Backend from "../../backend/config.js"
 
 const user = {
     id: 1
 }
 
-const request = (endpoint, operation, data) => {
-    return axios.post(Backend.URL + endpoint, {user, operation, data})
+const request = (endpoint, operation, data, config) => {
+    return axios.post(Backend.Server.URL + endpoint, {user, operation, ...data}, config).then((r) => {
+        if (r.data.status === Backend.Status.ERROR) console.warn(r.data.error)
+        else console.debug(r.data)
+        return r
+    })
 }
 
-export default { request }
+const fileRequest = (endpoint, operation, formData) => {
+    formData.append("user", user)
+    formData.append("operation", operation)
+    return axios.post(Backend.Server.URL + endpoint, formData, {headers: {"Content-Type": "multipart/form-data"}})
+}
+
+export default { request, fileRequest }

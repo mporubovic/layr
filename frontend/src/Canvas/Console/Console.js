@@ -5,7 +5,7 @@ import useStateRef from "react-usestateref";
 import axios from "axios";
 import _ from "lodash";
 import Frontend from "../../frontend";
-import Backend from "../../../../backend/config.js"
+import * as Backend from "../../../../backend/config.js"
 
 export default function Console(props) {
 
@@ -108,7 +108,7 @@ export default function Console(props) {
             let concepts = r.data.data
             concepts.forEach(c => c.callback = () => { props.openConcept(c.id) })
 
-            concepts[1].callback()
+            // concepts[1].callback()
 
             setResults(concepts)
         }).catch(console.error)

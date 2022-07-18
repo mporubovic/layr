@@ -8,127 +8,125 @@ import multer from "multer";
 import path from "path";
 import {v4 as uuid} from "uuid";
 import fs from "fs";
-import {StatusCodes} from "http-status-codes";
+import {Response as _Response} from './Response.js'
 
-import config from "./config.js"
+import { Server, Endpoint, Error, Operation } from "./config.js"
 
 const storage = multer.diskStorage({
-    destination: "." + config.Server.PUBLIC_PATH + config.Server.STORAGE_PATH,
+    destination: Server.INTERNAL_CONTENT_PATH,
     filename: function (req, file, cb) {
-        cb(null, uuid + path.extname(file.originalname));
+        cb(null, uuid() + path.extname(file.originalname));
     }
 });
 
 const upload = multer({storage})
 
-app.use(express.static(config.Server.PUBLIC_PATH))
+app.use(express.static(Server.PUBLIC_PATH.replace("/", "")))
 app.use(cors())
 app.use(express.json())
 
-
-
 connection.connect()
 
-
-app.post(config.Endpoint.CONCEPTS, (req, res) => {
-    let response = { status: null, data: null }
+app.post(Endpoint.CONCEPTS, (req, res) => {
+    let response = new _Response()
     let userId = req.body.user.id
     let query = ""
     let values = []
-    let guard = (c) => true
+    let guard = (next, err) => next()
     let process = (d) => d
-    let error = null
+
+    let userGuard = (id, next, _err) => {
+        // language=MySQL
+        let _query = "SELECT * FROM concepts WHERE id = ?"
+        let _values = [id]
+
+        connection.query(_query, _values, (err, result) => {
+            if (err) _err(err)
+            else if (result.length === 0) _err("Concept not found")
+            else if (result[0]["user_id"] !== userId) _err("User mismatch")
+            else next()
+        })
+    }
+
+    console.log(req.body)
 
     switch (req.body.operation) {
-        case config.Operation.LIST:
+        case Operation.LIST:
             // language=MySQL
             query = "SELECT * FROM concepts WHERE user_id = ?"
             values = [userId]
             break
-        case config.Operation.ONE:
+        case Operation.ONE:
             // language=MySQL
             query = "SELECT * FROM concepts WHERE concepts.id = ? LIMIT 1"
             values = [req.body.concept.id]
-            guard = c => c[0]['user_id'] === userId
+            guard = (next, err) => userGuard(req.body.concept.id, next, err)
             process = (d) => d[0]
             break
-        case config.Operation.CREATE:
+        case Operation.CREATE:
             // language=MySQL
-            query = "INSERT INTO concepts (name, user_id, content) VALUES (?, ?, ?)"
+            query = "INSERT INTO concepts (name, user_id, content) VALUES (?, ?, ?);"
+            // language=MySQL
+            query += "SELECT * FROM concepts WHERE id = LAST_INSERT_ID()"
             values = [req.body.concept.name, userId, req.body.concept.content]
-            process = (d) => d[0]
+            process = (d) => d[1][0]
             break
-        case config.Operation.DELETE:
-            // language=MySQL
-            query = "DELETE FROM concepts WHERE id = ?"
-            values = [req.body.concept.id]
-            guard = c => c[0]['user_id'] === userId
-            process = (d) => "ok"
-            break
-        case config.Operation.UPDATE:
+        case Operation.UPDATE:
             // language=MySQL
             query = "UPDATE concepts SET name = ?, content = ? WHERE id = ?"
             values = [req.body.concept.name, req.body.concept.content, req.body.concept.id]
-            guard = c => c[0]['user_id'] === userId
-            process = (d) => d[0]
+            guard = (next, err) => userGuard(req.body.concept.id, next, err)
+            process = (d) => null
+            break
+        case Operation.DELETE:
+            // language=MySQL
+            query = "DELETE FROM concepts WHERE id = ?"
+            values = [req.body.concept.id]
+            guard = (next, err) => userGuard(req.body.concept.id, next, err)
+            process = (d) => null
             break
         default:
-            error = "Unsupported operation"
-            break
+            response.error(Error.UNSUPPORTED_OPERATION)
+            return res.send(response)
     }
 
-
-    if (!error) {
+    guard(() => {
         connection.query(query, values, (err, results, fields) => {
-            if (err) {
-                response.status = "error"
-                response.data = err
-            }
-            else if (guard(results)) {
-                response.status = "ok"
-                response.data = process(results)
-            }
-            else {
-                response.status = "error"
-                response.data = "Guard fail"
-            }
+            console.log(results, fields)
+            if (err) response.error(err)
+            else response.ok(process(results))
             res.send(response)
         })
-    }
-    else {
-        response.status = "error"
-        response.data = error
+    }, (e) => {
+        response.error(e)
         res.send(response)
-    }
-})
-
-app.post(config.Endpoint.CONTENT, upload.single('file'), (req, res) => {
-    switch (req.body.operation) {
-        // case
-    }
-
-    if (req.file) {
-        res.status(StatusCodes.OK).send("storage/" + req.file.filename)
-    }
-    else {
-
-    }
-})
-
-app.delete('/content/*', (req, res) => {
-    let filePath = req.params[0]
-
-    fs.unlink(publicFolder + "/" + filePath, (err) => {
-        if (err) {
-            console.log(err)
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send()
-        }
-        else {
-            res.status(StatusCodes.OK).send()
-        }
     })
+
+
+
+
 })
 
-app.listen(config.Server.PORT, (a) => {
-    console.log("Listening on " + config.Server.URL)
+app.post(Endpoint.CONTENT, upload.single('file'), (req, res) => {
+    let response = new _Response()
+
+    switch (req.body.operation) {
+        case Operation.CREATE:
+            if (req.file) response.ok(req.file.filename)
+            else response.error(Error.MISSING_FILE)
+            res.send(response)
+            break
+
+        case Operation.DELETE:
+            fs.unlink( Server.INTERNAL_CONTENT_PATH + "/" + req.body.content.src, (err) => {
+                if (err)  response.error(err)
+                else response.ok(null)
+                res.send(response)
+            })
+            break
+    }
+})
+
+app.listen(Server.PORT, (a) => {
+    console.log("Listening on " + Server.URL)
 })
