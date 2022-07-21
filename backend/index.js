@@ -11,6 +11,8 @@ import fs from "fs";
 import {Response as _Response} from './Response.js'
 
 import { Server, Endpoint, Error, Operation } from "./config.js"
+import axios from "axios";
+import grabFavicons from "./lib/favicongrabber.com/index.js";
 
 const storage = multer.diskStorage({
     destination: Server.INTERNAL_CONTENT_PATH,
@@ -92,7 +94,7 @@ app.post(Endpoint.CONCEPTS, (req, res) => {
 
     guard(() => {
         connection.query(query, values, (err, results, fields) => {
-            console.log(results, fields)
+            // console.log(results, fields)
             if (err) response.error(err)
             else response.ok(process(results))
             res.send(response)
@@ -124,6 +126,46 @@ app.post(Endpoint.CONTENT, upload.single('file'), (req, res) => {
                 res.send(response)
             })
             break
+        default:
+            response.error(Error.UNSUPPORTED_OPERATION)
+            return res.send(response)
+    }
+})
+
+app.post(Endpoint.SITE_DATA, async (req, res) => {
+    let response = new _Response()
+    let data = {}
+    switch (req.body.operation) {
+        case Operation.ONE:
+            let url = req.body.site.url
+
+            try {
+                let htmlResponse = await axios.get(url, {timeout: 5000})
+                let html = htmlResponse.data
+
+                let title = html.match(/<title[^>]*>(.*?)<\/title>/ims)
+                if (title) data.title = title[1]
+
+                let ogTitle = html.match(/property="og:title"\s*content="(.*?)"/ims)
+                if (ogTitle) data["og:title"] = ogTitle[1]
+
+                let ogImage = html.match(/property="og:image"\s*content="(.*?)"/ims)
+                if (ogImage) data["og:image"] = ogImage[1]
+
+                let ogDescription = html.match(/property="og:description"\s*content="(.*?)"/ims)
+                if (ogDescription) data["og:description"] = ogDescription[1]
+
+                grabFavicons(url, null, (err, _data) => {
+                    data.icons = err ? {error: err} : _data.icons
+                    response.ok(data)
+                    res.send(response)
+                })
+
+            } catch (e) {
+                response.error(e.message)
+                res.send(response)
+            }
+
     }
 })
 

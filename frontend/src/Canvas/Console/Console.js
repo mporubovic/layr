@@ -1,8 +1,7 @@
 import styles from './Console.module.sass'
 import {useEffect, useRef, useState} from "react";
-import contentTypes from "../Content/contentTypes";
+import contentTypes, {getIcon} from "../Content/contentTypes";
 import useStateRef from "react-usestateref";
-import axios from "axios";
 import _ from "lodash";
 import Frontend from "../../frontend";
 import * as Backend from "../../../../backend/config.js"
@@ -13,13 +12,28 @@ export default function Console(props) {
     const [y, setY] = useState(props.mousePosition.y)
 
     const [input, setInput, inputRef] = useStateRef("")
+    const argumentsRef = useRef(null)
 
-    const commands = {
-        text: {name: "Text", icon: require('./text.svg').default, callback: () => props.createContent(contentTypes.Text)},
-        image: {name: "Image", icon: require("./image.svg").default, callback: () => props.createContent(contentTypes.Image)},
-        video: {name: "Video", icon: require("./video.svg").default, callback: () => props.createContent(contentTypes.Video)},
-        concept: {name: "Concept", icon: require('./cloud.svg').default, callback: () => props.createConcept()},
+    const commands = []
+
+    Object.entries(contentTypes).forEach(e => {
+        let [key, value] = e
+        commands.push({
+            name: value,
+            displayName: value,
+            icon: getIcon(key),
+            callback: (data) => props.createContent(contentTypes[key], data)
+        })
+    })
+
+    commands.push({name: 'concept', displayName: 'concept', icon: require('./cloud.svg').default, callback: (data) => props.createConcept(data)})
+
+    const commandArgumentToProperty = {
+        [contentTypes.TEXT.toLowerCase()]: 'text',
+        [contentTypes.LINK.toLowerCase()]: 'src',
+        'concept': 'name'
     }
+    const commandsWithArgs = Object.keys(commandArgumentToProperty)
 
     const [results, setResults, resultsRef] = useStateRef([])
 
@@ -28,22 +42,25 @@ export default function Console(props) {
             let inpt = inputRef.current.split(" ")
             let command = inpt[0].replace("/", "").toLowerCase()
             let args = inpt.slice(1, inpt.length)
+            argumentsRef.current = args
 
             let _results =
-                Object.keys(commands)
-                    .filter(k => k.indexOf(command) === 0)
+                commands
+                    .filter(k => k.name.toLowerCase().indexOf(command) === 0)
                     .reduce((arr, key) => {
-                        let cmnd = _.cloneDeep(commands[key])
+                        let cmnd = _.cloneDeep(key)
 
-                        if (command === "concept" && args.length !== 0) {
+                        if (commandsWithArgs.includes(command) && args.length !== 0) {
                             let name = args.reduce((a, b) => a+" "+b)
-                            cmnd.name = `Concept "${name}"`
-                            cmnd.callback = () => props.createConcept(name)
+                            cmnd.displayName = `${command} "${name}"`
+                            // cmnd.callback = () => props.createConcept(name)
                         }
 
                         arr.push(cmnd)
                         return arr
                     }, [])
+
+            console.log(_results)
 
             setResults(_results)
 
@@ -78,7 +95,10 @@ export default function Console(props) {
                 break
             case "Enter":
                 if (resultsRef.current.length > 0) {
-                    resultsRef.current[highlightResultRef.current].callback()
+                    let selected = resultsRef.current[highlightResultRef.current]
+                    let argumentString = argumentsRef.current && (argumentsRef.current.length > 0 ? argumentsRef.current.join("") : null)
+                    let callbackData = { [commandArgumentToProperty[selected.name]]: argumentString }
+                    resultsRef.current[highlightResultRef.current].callback(callbackData)
                 }
                 break
             case "Escape":
@@ -106,9 +126,13 @@ export default function Console(props) {
     function retrieveConcepts() {
         Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.LIST).then((r) => {
             let concepts = r.data.data
-            concepts.forEach(c => c.callback = () => { props.openConcept(c.id) })
+            concepts.forEach(c => {
+                c.callback = () => { props.openConcept(c.id) }
+                c.displayName = c.name
+            })
+            concepts.sort((a, b) => new Date(a['updated_at']) > new Date(b['updated_at']) ? -1 : 1)
 
-            // concepts[1].callback()
+            // concepts[0].callback()
 
             setResults(concepts)
         }).catch(console.error)
@@ -141,7 +165,7 @@ export default function Console(props) {
                             }}
                         >
                             { r.icon && (<img src={r.icon} />) }
-                            <span style={{ marginLeft: r.icon && "20px" }}>{r.name}</span>
+                            <span style={{ marginLeft: r.icon && "20px" }}>{r.displayName}</span>
                         </div>)
                     )
                 }

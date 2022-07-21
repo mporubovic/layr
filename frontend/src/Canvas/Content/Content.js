@@ -4,7 +4,7 @@ import {useEffect, useRef, memo, forwardRef, useImperativeHandle} from "react";
 
 import useStateRef from "react-usestateref";
 
-import components from './contentTypes'
+import {getComponent} from './contentTypes'
 
 export default memo(forwardRef((props, inRef) => {
 
@@ -75,7 +75,7 @@ export default memo(forwardRef((props, inRef) => {
         resize()
     }, [props.resizeDelta])
 
-    const Component = components[content.type]
+    const Component = getComponent(content.type)
 
     return (
         <div className="content" ref={contentWrapperDiv}
@@ -85,7 +85,7 @@ export default memo(forwardRef((props, inRef) => {
         >
             {
                 <Component ref={contentRef} {...content} lock={props.lock} update={props.update}
-                     style={{...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
+                     style={{...props.style, ...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
                 />
             }
 

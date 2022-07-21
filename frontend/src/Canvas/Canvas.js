@@ -4,7 +4,7 @@ import Content from "./Content/Content";
 import useStateRef from "react-usestateref";
 import Resizer from "./Content/Resizer/Resizer";
 import Console from "./Console/Console";
-import contentTypes from "./Content/contentTypes";
+import contentTypes, {getProcessFunction, getDefaults} from "./Content/contentTypes";
 import {v4 as uuidv4} from "uuid"
 
 import _ from "lodash"
@@ -25,11 +25,15 @@ export default function Canvas() {
     const [scale, setScale, scaleRef] = useStateRef(1)
 
     const [currentResizingContentId, setCurrentResizingContentId, currentResizingContentIdRef] = useStateRef(null)
+    const [dimCurrentResizingContent, setDimCurrentResizingContent] = useStateRef(false)
     const [metaDown, setMetaDown, metaDownRef] = useStateRef(false)
     const [mouseIn, setMouseIn, mouseInRef] = useStateRef(null)
     const [resizeDelta, setResizeDelta] = useState(null)
     const showResizerRef = useRef(false)
     showResizerRef.current = (metaDown && (mouseIn || currentResizingContentId))
+    const showResizerOnContentIdRef = useRef(null)
+    showResizerOnContentIdRef.current = showResizerRef.current && (mouseIn || currentResizingContentId)
+
 
     const [showConsole, setShowConsole, showConsoleRef] = useStateRef(true)
     const mousePosition = useRef({x: window.innerWidth/2, y: window.innerHeight/2})
@@ -38,6 +42,7 @@ export default function Canvas() {
     const backendTimeout = useRef(null)
 
     const backspaceCounter = useRef(0)
+    const backspaceTimeout = useRef(null)
     const clickTimeStamp = useRef(0)
 
     const onKeyDown = (e) => {
@@ -47,19 +52,41 @@ export default function Canvas() {
         }
         else if (e.key === "Backspace" && showResizerRef.current) {
             backspaceCounter.current++
+
             if (backspaceCounter.current === 2) {
                 deleteContent(currentResizingContentIdRef.current || mouseInRef.current)
+                backspaceCounter.current = 0
+                unDim()
+            }
+            else {
+                backspaceTimeout.current = setTimeout(() => {
+                    backspaceCounter.current = 0
+                    setDimCurrentResizingContent(false)
+                }, 1000)
+
+                setDimCurrentResizingContent(true)
             }
         }
         else {
             backspaceCounter.current = 0
+            unDim()
         }
         // e.key === "Escape" && showConsoleRef && setShowConsole(false)
     }
 
+    const unDim = () => {
+        clearTimeout(backspaceTimeout.current)
+        setDimCurrentResizingContent(false)
+    }
+
     const onKeyUp = (e) => {
-        if (e.key === "Meta") setMetaDown(false)
-        else backspaceCounter.current = 0
+        if (e.key === "Meta") {
+            setMetaDown(false)
+            unDim()
+        }
+        else {
+            backspaceCounter.current = 0
+        }
     }
 
 
@@ -120,13 +147,16 @@ export default function Canvas() {
 
     const centerContentOnScreen = (c) => {
         const animationTime = 300
+        const sizeMultiplier = 0.8
 
         let rect = c.local.ref.getBoundingClientRect()
 
         let windowAspect = window.innerWidth / window.innerHeight
         let contentAspect = rect.width / rect.height
 
-        let dScale = contentAspect > windowAspect ? (0.8 * window.innerWidth) / rect.width : (0.8 * window.innerHeight) / rect.height
+        let dScale = contentAspect > windowAspect
+                        ? (sizeMultiplier * window.innerWidth) / rect.width
+                        : (sizeMultiplier * window.innerHeight) / rect.height
 
         let nextScale = scaleRef.current * dScale
 
@@ -169,58 +199,15 @@ export default function Canvas() {
                 if (i.kind === "file") {
                     let file = i.getAsFile()
                     if (file.type.match(/(image|video)/i)) {
-
-                        const formData = new FormData()
-                        formData.append("file", file)
-
                         let reader = new FileReader()
+                        let contentType
+                        if (file.type.includes("image")) contentType = contentTypes.IMAGE
+                        else if (file.type.includes("video")) contentType = contentTypes.VIDEO
 
-                        Frontend.fileRequest(Backend.Endpoint.CONTENT, Backend.Operation.CREATE, formData)
-                            .then((r) => {
-                                if (r.data.status === Backend.Status.ERROR) return console.warn(r.data.error)
-                                let url = r.data.data
-
-                                reader.onload = (data) => {
-
-                                    if (file.type.includes("image")) {
-                                        let img = new Image()
-                                        img.src = data.target.result
-
-                                        img.onload = () => {
-                                            let scale = window.innerWidth / (5 * img.width)
-                                            createContent(contentTypes.Image, {src: url, scale})
-
-                                            img.onload = null
-                                            img = null
-                                        }
-                                    }
-                                    else if (file.type.includes("video")) {
-                                        let vid = document.createElement("video")
-                                        vid.src = data.target.result
-
-                                        vid.onloadedmetadata = () => {
-                                            let scale = window.innerWidth / (5 * vid.videoWidth)
-
-                                            createContent(contentTypes.Video, {src: url, scale})
-
-                                            vid.onloadedmetadata = null
-                                            vid = null
-                                        }
-
-                                        vid.load()
-
-                                    }
-
-
-
-                                }
-
-                                reader.readAsDataURL(file)
-
-
-
-
-                            })
+                        reader.readAsDataURL(file)
+                        reader.onload = (data) => {
+                            getProcessFunction(contentType)(file, data.target.result, (_data) => createContent(contentType, _data))
+                        }
                     }
                 }
             }
@@ -279,47 +266,24 @@ export default function Canvas() {
 
 
     function createContent(type, data) {
-
         let relativePosition = mouseToCanvasPosition(mousePosition.current.x, mousePosition.current.y)
 
         let content = {
+            type,
+            ...getDefaults(type)(data),
+
             x: relativePosition.x,
             y: relativePosition.y,
+            scale: data?.scale ?? 1,
+
             local: {
                 ref: null,
                 id: uuidv4(),
-            }
-        }
-
-        switch (type) {
-            case contentTypes.Text:
-                content = {
-                    ...content,
-                    type: "Text",
-                    text: "LOREM IPSUM",
-                    scale: 1,
-                }
-                break
-
-            case contentTypes.Image:
-                content = {
-                    ...content,
-                    type: "Image",
-                    src: data.src,
-                    scale: data.scale
-                }
-
-                break
-
-            case contentTypes.Video:
-                content = {
-                    ...content,
-                    type: "Video",
-                    src: data.src,
-                    scale: data.scale
-                }
+            },
 
         }
+
+        console.log(content)
 
         let c = _.cloneDeep(conceptRef.current)
         c.content.push(content)
@@ -333,7 +297,7 @@ export default function Canvas() {
         let c = _.cloneDeep(conceptRef.current)
         let idx = conceptRef.current.content.findIndex(c => c.local.id === id)
 
-        if (["Image", "Video"].indexOf(c.content[idx].type) !== -1) {
+        if ([contentTypes.IMAGE, contentTypes.VIDEO].includes(c.content[idx].type)) {
             Frontend.request(Backend.Endpoint.CONTENT, Backend.Operation.DELETE, { content: {src: c.content[idx].src} })
         }
 
@@ -423,6 +387,7 @@ export default function Canvas() {
                                  canvasScale={scale}
                                  resizeDelta={currentResizingContentId === c.local.id && resizeDelta}
                                  update={(data) => onContentUpdate(c.local.id, data)}
+                                 style={{opacity: showResizerOnContentIdRef.current === c.local.id && dimCurrentResizingContent && 0.5}}
                         />
                         )
                     )

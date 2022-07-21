@@ -2,6 +2,10 @@ import './Video.sass'
 import {forwardRef} from "react";
 import * as Backend from "../../../../../backend/config.js"
 
+const create = () => {
+
+}
+
 export default forwardRef((props, ref) => {
 
     return (

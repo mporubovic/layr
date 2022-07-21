@@ -1,7 +1,6 @@
 import connection from "../connection.js";
 import fs from "fs";
 
-
 // https://stackoverflow.com/a/65402918
 import { createRequire } from "module"
 const require = createRequire(import.meta.url)
