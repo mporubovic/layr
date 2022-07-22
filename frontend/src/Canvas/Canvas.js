@@ -11,6 +11,7 @@ import _ from "lodash"
 import TWEEN from "@tweenjs/tween.js";
 import Frontend from "../frontend";
 import * as Backend from "../../../backend/config.js";
+import Placeholder from "./Content/Placeholder/Placeholder";
 
 export default function Canvas() {
 
@@ -34,7 +35,6 @@ export default function Canvas() {
     const showResizerOnContentIdRef = useRef(null)
     showResizerOnContentIdRef.current = showResizerRef.current && (mouseIn || currentResizingContentId)
 
-
     const [showConsole, setShowConsole, showConsoleRef] = useStateRef(true)
     const mousePosition = useRef({x: window.innerWidth/2, y: window.innerHeight/2})
 
@@ -44,6 +44,9 @@ export default function Canvas() {
     const backspaceCounter = useRef(0)
     const backspaceTimeout = useRef(null)
     const clickTimeStamp = useRef(0)
+
+    // const [placeholders, setPlaceholders, placeholdersRef] = useStateRef([{x: 0, y:0}])
+    const [placeholders, setPlaceholders] = useState([])
 
     const onKeyDown = (e) => {
         e.key === "Meta" && setMetaDown(true)
@@ -264,13 +267,40 @@ export default function Canvas() {
         setResizeDelta(null)
     }
 
+    function requestContentCreation(type, data) {
+        setShowConsole(false)
 
-    function createContent(type, data) {
-        let relativePosition = mouseToCanvasPosition(mousePosition.current.x, mousePosition.current.y)
+        let asyncContent = [contentTypes.IMAGE, contentTypes.VIDEO, contentTypes.LINK]
+
+        if (asyncContent.includes(type)) {
+            let relativePosition = mouseToCanvasPosition(mousePosition.current.x, mousePosition.current.y)
+
+            setPlaceholders([
+                ...placeholders,
+                {...relativePosition}
+            ])
+
+            getProcessFunction(type)(data, (_data) => {
+                setPlaceholders(ps => {
+                    let arr = [...ps]
+                    arr.pop()
+                    return arr
+                })
+                createContent(type, _data, relativePosition)
+
+            })
+        }
+        else {
+            createContent(type, data)
+        }
+    }
+
+    function createContent(type, data, position) {
+        let relativePosition = position ?? mouseToCanvasPosition(mousePosition.current.x, mousePosition.current.y)
 
         let content = {
             type,
-            ...getDefaults(type)(data),
+            ...data,
 
             x: relativePosition.x,
             y: relativePosition.y,
@@ -290,7 +320,6 @@ export default function Canvas() {
 
         postUpdatedConcept(c)
         setConcept(c)
-        setShowConsole(false)
     }
 
     function deleteContent(id) {
@@ -393,6 +422,15 @@ export default function Canvas() {
                     )
                 }
 
+                {
+                    placeholders[0] && placeholders.map((p, id) => (
+                        <Placeholder key={id} ref={r => p.ref = r}
+                                     x={p.x}
+                                     y={p.y}
+                        />
+                    ))
+                }
+
             </div>
 
             {
@@ -413,11 +451,13 @@ export default function Canvas() {
                 (<Console
                     mousePosition={mousePosition.current}
                     close={() => setShowConsole(false)}
-                    createContent={createContent}
+                    requestContentCreation={requestContentCreation}
                     createConcept={createConcept}
                     openConcept={openConcept}
+
                 />)
             }
+
         </div>
     )
 }

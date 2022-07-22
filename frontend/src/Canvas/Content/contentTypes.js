@@ -24,7 +24,3 @@ export function getIcon(content) {
 export function getProcessFunction(content) {
     return require(`./${getComponentFileName(content)}/process.js`).default
 }
-
-export function getDefaults(content) {
-    return require(`./${getComponentFileName(content)}/defaults.js`).default
-}

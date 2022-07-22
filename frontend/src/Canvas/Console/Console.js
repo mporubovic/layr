@@ -1,6 +1,6 @@
 import styles from './Console.module.sass'
 import {useEffect, useRef, useState} from "react";
-import contentTypes, {getIcon} from "../Content/contentTypes";
+import contentTypes, {getIcon, getProcessFunction} from "../Content/contentTypes";
 import useStateRef from "react-usestateref";
 import _ from "lodash";
 import Frontend from "../../frontend";
@@ -22,7 +22,7 @@ export default function Console(props) {
             name: value,
             displayName: value,
             icon: getIcon(key),
-            callback: (data) => props.createContent(contentTypes[key], data)
+            callback: (data) => props.requestContentCreation(value, data)
         })
     })
 
@@ -113,7 +113,7 @@ export default function Console(props) {
 
                 break
             default:
-                if (e.key.length === 1 && e.key.match(/[\w\d.\- /]/i)) {
+                if (e.key.length === 1 && e.key.match(/[\w\d.\-: /]/i)) {
                     setInput((i) => i + e.key)
                     setHighlightResult(0)
                 }

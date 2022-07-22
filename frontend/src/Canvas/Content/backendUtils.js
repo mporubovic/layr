@@ -3,7 +3,7 @@ import * as Backend from "../../../../backend/config.js"
 
 const errorHandler = (response) => {
     if (response.data.status === Backend.Status.ERROR) {
-        console.warn("File upload error:", response.data.error)
+        console.warn("Error:", response.data.error)
     }
     return response
 }
