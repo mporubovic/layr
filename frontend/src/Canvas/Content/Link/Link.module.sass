@@ -1,7 +1,7 @@
 .link
     background-color: white
     user-select: none
-    cursor: pointer
+    max-width: 300px
 
     .header
         display: flex
@@ -11,13 +11,27 @@
         img
             height: 20px
         span
+            padding: 0 10px
             text-align: center
             width: 100%
             font-weight: bold
+            font-size: 16px
 
     .body
         padding: 10px 20px
         background-color: black
         color: white
-        font-style: italic
+
+        .description
+            font-size: 14px
+            text-align: justify
+
+    .url
         font-size: 12px
+        font-style: italic
+        color: black
+        background-color: white
+        padding: 0 10px
+        text-align: center
+        cursor: pointer
+

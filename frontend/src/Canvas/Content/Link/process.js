@@ -1,19 +1,26 @@
 import {getSiteData} from "../backendUtils";
 
 export default function (data, callback) {
-    getSiteData(data.src).then(r => {
-        let url = r.data.data
+    let url = data.src
+    if (url.indexOf('http') === -1) url = "http://" + url
 
-        let img = new Image()
+    getSiteData(url).then(r => {
+        let siteData = r.data.data
 
-        img.onload = () => {
-            let scale = window.innerWidth / (5 * img.width)
-            callback({src: url, scale})
+        let src = siteData.url
+        let favicon = siteData.icons.find(i => i.favicon)?.src
+        let title = siteData['og:title'] ?? siteData.title
+        let description = siteData['og:description']
+        let image = siteData['og:image']
 
-            img.onload = null
-            img = null
-        }
+        console.log(siteData, {src, favicon, title, description, image})
 
-        img.src = data
+        callback({
+            src, favicon, title, description, image
+        })
+
+        // console.log(siteData)
+
+        // callback({src: url})
     })
 }

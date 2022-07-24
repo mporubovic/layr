@@ -10,15 +10,24 @@ export default forwardRef((props, ref) => {
     }
 
     return (
-        <div className={styles.link} onClick={!props.lock ? open : undefined} style={props.style} ref={ref}>
+        <div className={styles.link} style={props.style} ref={ref}>
             <div className={styles.header}>
-                <img src={Server.EXTERNAL_CACHE_URL + "/" + props.icon.src ?? defaultIcon} />
+                <img src={ props.favicon
+                            ? Server.EXTERNAL_CACHE_URL + "/" + props.favicon
+                            : defaultIcon}
+                />
                 <span>{props.title}</span>
             </div>
 
             <div className={styles.body}>
-                <span>{props.src}</span>
+                {
+                    props.description && (
+                        <div className={styles.description} dangerouslySetInnerHTML={ {__html: props.description} } />
+                    )
+                }
             </div>
+
+            <div className={styles.url} onClick={!props.lock ? open : undefined}>{props.src}</div>
 
         </div>
     )

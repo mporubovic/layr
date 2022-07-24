@@ -105,8 +105,6 @@ app.post(Endpoint.CONCEPTS, (req, res) => {
     })
 
 
-
-
 })
 
 app.post(Endpoint.CONTENT, upload.single('file'), (req, res) => {
@@ -138,6 +136,7 @@ app.post(Endpoint.SITE_DATA, async (req, res) => {
     switch (req.body.operation) {
         case Operation.ONE:
             let url = req.body.site.url
+            data.url = url
 
             try {
                 let htmlResponse = await axios.get(url, {timeout: 5000})
@@ -155,9 +154,29 @@ app.post(Endpoint.SITE_DATA, async (req, res) => {
                 let ogDescription = html.match(/property="og:description"\s*content="(.*?)"/ims)
                 if (ogDescription) data["og:description"] = ogDescription[1]
 
-                grabFavicons(url, null, (err, _data) => {
-                    data.icons = err ? {error: err} : _data.icons
+                grabFavicons(encodeURI(url), null, async (err, _data) => {
+                    // data.icons = err ? {error: err} : _data.icons
+                    let icons = _data.icons
+                    data.icons = []
+                    console.log(icons)
+
+                    for (const i of icons) {
+                        try {
+                            let _img = await axios.get(i.src, {responseType: 'arraybuffer'})
+                            let img = Buffer.from(_img.data, 'binary')
+                            let _ext = i.src.split(".")
+                            let ext = _ext[_ext.length-1]
+                            let fileName = uuid() + "." + ext
+                            fs.writeFileSync("." + Server.PUBLIC_PATH + Server.CACHE_PATH + "/" + fileName, img, 'binary')
+                            i.src = fileName
+                            data.icons.push(i)
+                        } catch (e) {
+                            //
+                        }
+                    }
+
                     response.ok(data)
+
                     res.send(response)
                 })
 
