@@ -1,5 +1,5 @@
 import styles from './Link.module.sass'
-import defaultIcon from './Link.svg'
+import defaultIcon from './Link_black.svg'
 import {forwardRef, useEffect, useState} from "react";
 import {Server} from "../../../../../backend/config.js"
 
