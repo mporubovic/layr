@@ -12,7 +12,7 @@ import {Response as _Response} from './Response.js'
 
 import { Server, Endpoint, Error, Operation } from "./config.js"
 import axios from "axios";
-import grabFavicons from "./lib/favicongrabber.com/index.js";
+import grabFavicons from "./lib/favicongrabber/index.js";
 
 const storage = multer.diskStorage({
     destination: Server.INTERNAL_CONTENT_PATH,
