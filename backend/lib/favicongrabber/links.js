@@ -1,0 +1,29 @@
+const selectors = [
+  "link[rel='icon']",
+  "link[rel='shortcut icon']",
+  "link[rel='apple-touch-icon']",
+  "link[rel='apple-touch-icon-precomposed']",
+  "link[rel='apple-touch-startup-image']",
+  "link[rel='mask-icon']",
+  "link[rel='fluid-icon']",
+];
+
+export default function ($) {
+  const icons = [];
+
+  selectors.forEach((selector) => {
+    $(selector).each((i, elem) => {
+      const { href, sizes, type } = elem.attribs;
+      if (href && href !== '#') {
+        const icon = {
+          sizes,
+          src: href,
+          type,
+        };
+        icons.push(icon);
+      }
+    });
+  });
+
+  return icons;
+};
