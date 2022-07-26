@@ -382,9 +382,9 @@ export default function Canvas() {
         postUpdatedConcept(conceptRef.current)
     }
 
-    function createConcept(name) {
+    function createConcept(data) {
         let c = {
-            name: name ?? "New concept",
+            name: data.name ?? "New concept",
             content: JSON.stringify([])
         }
 
