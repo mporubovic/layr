@@ -183,8 +183,8 @@ export default function Canvas() {
         let delta = e.timeStamp - clickTimeStamp.current
 
         if (delta < 200) { // double-click
-            let first = e.composedPath()[0]
-            let c = conceptRef.current.content.find(c => c.local.ref === first)
+            let contentDiv = e.composedPath().find(el => el.className === 'content')
+            let c = conceptRef.current.content.find(c => c.local.ref === contentDiv)
             if (c) centerContentOnScreen(c)
         }
 
