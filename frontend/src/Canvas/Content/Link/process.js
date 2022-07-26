@@ -8,7 +8,7 @@ export default function (data, callback) {
         let siteData = r.data.data
 
         let src = siteData.url
-        let favicon = siteData.icons.find(i => i.favicon)?.src
+        let favicon = siteData.icons.find(i => i.favicon)?.src ?? siteData.icons[0]?.src
         let title = siteData['og:title'] ?? siteData.title
         let description = siteData['og:description']
         let image = siteData['og:image']

@@ -151,7 +151,7 @@ app.post(Endpoint.SITE_DATA, async (req, res) => {
                 let ogImage = html.match(/property="og:image"\s*content="(.*?)"/ims)
                 if (ogImage) data["og:image"] = ogImage[1]
 
-                let ogDescription = html.match(/property="og:description"\s*content="(.*?)"/ims)
+                let ogDescription = html.match(/property="og:description"\s*content="(.*?)"/ims) // TODO: order
                 if (ogDescription) data["og:description"] = ogDescription[1]
 
                 grabFavicons(encodeURI(url), null, async (err, _data) => {
@@ -164,8 +164,12 @@ app.post(Endpoint.SITE_DATA, async (req, res) => {
                         try {
                             let _img = await axios.get(i.src, {responseType: 'arraybuffer'})
                             let img = Buffer.from(_img.data, 'binary')
+
                             let _ext = i.src.split(".")
                             let ext = _ext[_ext.length-1]
+                            let match = ext.match(/(.+?)[?.]/)
+                            if (match) ext = match[1]
+
                             let fileName = uuid() + "." + ext
                             fs.writeFileSync("." + Server.PUBLIC_PATH + Server.CACHE_PATH + "/" + fileName, img, 'binary')
                             i.src = fileName
