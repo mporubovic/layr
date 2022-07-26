@@ -78,13 +78,13 @@ export default memo(forwardRef((props, inRef) => {
     const Component = getComponent(content.type)
 
     return (
-        <div className="content" ref={contentWrapperDiv}
+        <div className="content" ref={contentRef}
              style={{
                  transform: `translate(${x}px, ${y}px) scale(${scale})`,
              }}
         >
             {
-                <Component ref={contentRef} {...content} lock={props.lock} update={props.update}
+                <Component {...content} lock={props.lock} update={props.update}
                      style={{...props.style, ...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
                 />
             }

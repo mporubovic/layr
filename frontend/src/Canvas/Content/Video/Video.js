@@ -1,18 +1,12 @@
 import './Video.sass'
-import {forwardRef} from "react";
 import * as Backend from "../../../../../backend/config.js"
 
-const create = () => {
-
-}
-
-export default forwardRef((props, ref) => {
+export default function Video(props) {
 
     return (
         <video controls loop
                onMouseEnter={(e) => e.target.play()}
                onMouseOut={(e) => e.target.pause()}
-               ref={ref}
                className="video"
                src={Backend.Server.EXTERNAL_CONTENT_URL + "/" + props.src}
                style={{
@@ -20,4 +14,4 @@ export default forwardRef((props, ref) => {
                }}
         />
     )
-})
+}

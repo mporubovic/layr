@@ -1,7 +1,6 @@
 import styles from './Placeholder.module.sass'
-import {forwardRef, useEffect, useState} from "react";
 
-export default forwardRef((props, ref) => {
+export default function Placeholder (props) {
 
 
     return (
@@ -14,4 +13,4 @@ export default forwardRef((props, ref) => {
             <img className={styles.icon} src={props.icon} />
         </div>
     )
-})
+}

@@ -1,11 +1,12 @@
 import './Text.sass'
-import {forwardRef, useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
-export default forwardRef((props, ref) => {
+export default function Text(props) {
 
     const font = 20
 
     const [text, setText] = useState(props.text)
+    const ref = useRef()
 
     const changeText = (t) => {
         props.update({text: t})
@@ -27,4 +28,4 @@ export default forwardRef((props, ref) => {
 
         </div>
     )
-})
+}
