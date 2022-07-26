@@ -10,7 +10,8 @@ export default forwardRef((props, ref) => {
                  transform: `translate(${props.x}px, ${props.y}px)`,
              }}
         >
-            <span className={styles.loader} />
+            {/*<span className={styles.loader} />*/}
+            <img className={styles.icon} src={props.icon} />
         </div>
     )
 })

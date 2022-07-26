@@ -4,7 +4,7 @@ import Content from "./Content/Content";
 import useStateRef from "react-usestateref";
 import Resizer from "./Content/Resizer/Resizer";
 import Console from "./Console/Console";
-import contentTypes, {getProcessFunction, getDefaults} from "./Content/contentTypes";
+import contentTypes, {getProcessFunction, getIcon} from "./Content/contentTypes";
 import {v4 as uuidv4} from "uuid"
 
 import _ from "lodash"
@@ -45,8 +45,8 @@ export default function Canvas() {
     const backspaceTimeout = useRef(null)
     const clickTimeStamp = useRef(0)
 
-    // const [placeholders, setPlaceholders, placeholdersRef] = useStateRef([{x: 0, y:0}])
     const [placeholders, setPlaceholders] = useState([])
+    // const [placeholders, setPlaceholders] = useState([{x: 0, y: 0, icon: getIcon(contentTypes.LINK)}])
 
     const onKeyDown = (e) => {
         e.key === "Meta" && setMetaDown(true)
@@ -191,8 +191,6 @@ export default function Canvas() {
         clickTimeStamp.current = e.timeStamp
     }
 
-
-
     const onDrop = (e) => {
         e.preventDefault()
 
@@ -220,7 +218,6 @@ export default function Canvas() {
     const onDragOver = (e) => {
         e.preventDefault()
     }
-
 
     useEffect(() => {
         window.addEventListener("wheel", onWheel, {passive: false})
@@ -275,9 +272,9 @@ export default function Canvas() {
         if (asyncContent.includes(type)) {
             let relativePosition = mouseToCanvasPosition(mousePosition.current.x, mousePosition.current.y)
 
-            setPlaceholders([
-                ...placeholders,
-                {...relativePosition}
+            setPlaceholders((pl) => [
+                ...pl,
+                {...relativePosition, icon: getIcon(type)}
             ])
 
             getProcessFunction(type)(data, (_data) => {
@@ -427,6 +424,7 @@ export default function Canvas() {
                         <Placeholder key={id} ref={r => p.ref = r}
                                      x={p.x}
                                      y={p.y}
+                                     icon={p.icon}
                         />
                     ))
                 }

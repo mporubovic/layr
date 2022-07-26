@@ -4,8 +4,15 @@
     top: 50%
     transform-origin: left top
 
-    $size: 50px
+
+    //$size: 50px
+    $size: 30px
     $duration: 0.9s
+
+    .icon
+        position: absolute
+        height: $size
+        animation: opacity calc(#{$duration}*2) linear infinite
 
     .loader
         width: $size
@@ -27,7 +34,7 @@
         animation: animloader $duration linear infinite
 
     .loader::after
-        animation-delay: calc(#{$duration}/2)
+        animation-delay: calc(-#{$duration}/2)
 
 
     @keyframes animloader
@@ -37,4 +44,12 @@
 
         100%
             transform: scale(1)
+            opacity: 0
+
+    @keyframes opacity
+        0%
+            opacity: 0
+        50%
+            opacity: 0.8
+        100%
             opacity: 0
