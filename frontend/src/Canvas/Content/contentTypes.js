@@ -3,7 +3,8 @@ const types = {
     VIDEO: 'video',
     IMAGE: 'image',
     LINK: 'link',
-    HTML: 'html'
+    HTML: 'html',
+    YOUTUBE: 'youtube',
 }
 
 export default {...types}

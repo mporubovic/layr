@@ -84,9 +84,15 @@ export default forwardRef((props, inRef) => {
              }}
         >
             {
-                <Component {...content} lock={props.lock} update={props.update} registerCommands={props.registerCommands}
-                     style={{...props.style, ...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
-                     scale={scale}
+                <Component {...content}
+                           scale={scale}
+                           style={{...props.style, ...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
+
+                           lock={props.lock}
+                           update={props.update}
+
+                           registerCommands={props.registerCommands}
+                           setMenuItems={props.setMenuItems}
                 />
             }
 

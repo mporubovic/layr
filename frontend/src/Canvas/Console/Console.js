@@ -10,13 +10,13 @@ export default function Console(props) {
     const [input, setInput, inputRef] = useStateRef(props.prefix)
     const argumentsRef = useRef(null)
 
-    const [commands, setCommands, commandsRef] = useStateRef([])
+    const commandsRef = useRef([])
 
     const [results, setResults, resultsRef] = useStateRef([])
     const [highlightResult, setHighlightResult, highlightResultRef] = useStateRef(0)
 
     useEffect(() => {
-        setCommands(props.commands)
+        commandsRef.current = props.commands
         renderResults()
     }, [props.commands])
 
@@ -96,9 +96,12 @@ export default function Console(props) {
 
                 break
             default:
-                if (e.key.length === 1 && e.key.match(/[\w\d.\\\-: /]/i)) {
-                    setInput((i) => i + e.key)
-                    setHighlightResult(0)
+                if (e.key.length === 1) {
+                    // if (e.key.match(/[vc]/i)) return
+                    if (e.key.match(/[\w\d.\\\-: /]/i)) {
+                        setInput((i) => i + e.key)
+                        setHighlightResult(0)
+                    }
                 }
         }
 
@@ -106,11 +109,20 @@ export default function Console(props) {
 
     }
 
+    const onPaste = (e) => {
+        let text = e.clipboardData.getData('text')
+        setInput((i) => i + text)
+        renderResults()
+    }
+
     useEffect(() => {
         window.addEventListener("keydown", onKeyDown)
+        window.addEventListener('paste', onPaste)
 
         return () => {
             window.removeEventListener("keydown", onKeyDown)
+            window.removeEventListener('paste', onPaste)
+
         }
     }, [])
 

@@ -8,6 +8,7 @@ export function register(callbacks) {
         [contentTypes.TEXT]: 'text',
         [contentTypes.LINK]: 'src',
         [contentTypes.HTML]: 'html',
+        [contentTypes.YOUTUBE]: 'src'
     }
 
     Object.entries(contentTypes).forEach(e => {

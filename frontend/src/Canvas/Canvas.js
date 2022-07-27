@@ -13,6 +13,7 @@ import Frontend from "../frontend";
 import * as Backend from "../../../backend/config.js";
 import Placeholder from "./Content/Placeholder/Placeholder";
 import {register as registerCanvasCommands, reset as resetCanvasCommands, canvasCommands} from "./canvasCommands";
+import Menu from "./Menu/Menu";
 
 export default function Canvas() {
 
@@ -50,6 +51,8 @@ export default function Canvas() {
 
     const [placeholders, setPlaceholders] = useState([])
     // const [placeholders, setPlaceholders] = useState([{x: 0, y: 0, icon: getIcon(contentTypes.LINK)}])
+
+    const [menuItems, setMenuItems] = useState(null)
 
     const onKeyDown = (e) => {
         e.key === "Meta" && setMetaDown(true)
@@ -419,7 +422,7 @@ export default function Canvas() {
         if (backendTimeout.current) clearTimeout(backendTimeout.current)
 
         backendTimeout.current = setTimeout(() => {
-            console.log("Posting to backend")
+            console.log("Posting to backend", _.cloneDeep(data))
             data.content = JSON.stringify(data.content)
             Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: data}).then((r) => {
                 if (r.data.status === Backend.Status.ERROR) console.warn(r.data.error)
@@ -482,6 +485,7 @@ export default function Canvas() {
                                  update={(data) => onContentUpdate(c.local.id, data)}
                                  style={{opacity: showResizerOnContentIdRef.current === c.local.id && dimCurrentResizingContent && 0.5}}
                                  registerCommands={(cmds) => c.local.commands = cmds}
+                                 setMenuItems={setMenuItems}
                         />
                         )
                     )
@@ -520,6 +524,17 @@ export default function Canvas() {
                     mousePosition={mousePosition.current}
                     close={() => setShowConsole(false)}
                 />)
+            }
+
+            {
+                menuItems &&
+                (
+                    <Menu
+                        items={menuItems}
+                        mousePosition={mousePosition.current}
+                        close={() => setMenuItems(null)}
+                    />
+                )
             }
 
         </div>
