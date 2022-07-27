@@ -6,7 +6,7 @@ import useStateRef from "react-usestateref";
 
 import {getComponent} from './contentTypes'
 
-export default memo(forwardRef((props, inRef) => {
+export default forwardRef((props, inRef) => {
 
     const contentRef = useRef()
     useImperativeHandle(inRef, () => contentRef.current, [contentRef])
@@ -84,16 +84,13 @@ export default memo(forwardRef((props, inRef) => {
              }}
         >
             {
-                <Component {...content} lock={props.lock} update={props.update}
+                <Component {...content} lock={props.lock} update={props.update} registerCommands={props.registerCommands}
                      style={{...props.style, ...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
+                     scale={scale}
                 />
             }
 
 
         </div>
-
-
-
-
     )
-}))
+})

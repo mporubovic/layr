@@ -12,6 +12,7 @@ import TWEEN from "@tweenjs/tween.js";
 import Frontend from "../frontend";
 import * as Backend from "../../../backend/config.js";
 import Placeholder from "./Content/Placeholder/Placeholder";
+import {register as registerCanvasCommands, reset as resetCanvasCommands, canvasCommands} from "./canvasCommands";
 
 export default function Canvas() {
 
@@ -35,7 +36,9 @@ export default function Canvas() {
     const showResizerOnContentIdRef = useRef(null)
     showResizerOnContentIdRef.current = showResizerRef.current && (mouseIn || currentResizingContentId)
 
-    const [showConsole, setShowConsole, showConsoleRef] = useStateRef(true)
+    const [showConsole, setShowConsole, showConsoleRef] = useStateRef(false)
+    const [consolePrefix, setConsolePrefix] = useState()
+    const [consoleCommands, setConsoleCommands] = useState([])
     const mousePosition = useRef({x: window.innerWidth/2, y: window.innerHeight/2})
 
     const [concept, setConcept, conceptRef] = useStateRef(null)
@@ -50,8 +53,25 @@ export default function Canvas() {
 
     const onKeyDown = (e) => {
         e.key === "Meta" && setMetaDown(true)
-        if (e.key === "/" && !showConsoleRef.current) {
-            setShowConsole(true)
+        if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current) {
+            if (e.key === "/") {
+                let content = conceptRef.current?.content.find(c => c.local.id === mouseInRef.current)
+
+                if (content && content.local.commands) setConsoleCommands(content.local.commands)
+                else setConsoleCommands(canvasCommands)
+
+                setConsolePrefix(e.key)
+                setShowConsole(true)
+            }
+            else {
+                retrieveConcepts().then(c => {
+                    setConsoleCommands(c)
+                    setConsolePrefix(e.key)
+                    setShowConsole(true)
+                })
+            }
+
+
         }
         else if (e.key === "Backspace" && showResizerRef.current) {
             backspaceCounter.current++
@@ -90,6 +110,14 @@ export default function Canvas() {
         else {
             backspaceCounter.current = 0
         }
+    }
+
+    function contentFromRef(ref) {
+        return conceptRef.current.content.find(c => c.local.ref === ref)
+    }
+
+    function findContentInPath(path) {
+        return contentFromRef(path.find(el => el.className === 'content'))
     }
 
 
@@ -184,8 +212,10 @@ export default function Canvas() {
 
         if (delta < 200) { // double-click
             let contentDiv = e.composedPath().find(el => el.className === 'content')
-            let c = conceptRef.current.content.find(c => c.local.ref === contentDiv)
-            if (c) centerContentOnScreen(c)
+            if (contentDiv) {
+                let c = conceptRef.current.content.find(c => c.local.ref === contentDiv)
+                if (c) centerContentOnScreen(c)
+            }
         }
 
         clickTimeStamp.current = e.timeStamp
@@ -232,7 +262,6 @@ export default function Canvas() {
             c.local.ref?.addEventListener("mouseenter", () => onMouseEnter(c))
             c.local.ref?.addEventListener("mouseleave", onMouseLeave)
         })
-
         return () => {
             window.removeEventListener("wheel", onWheel)
             window.removeEventListener("keydown", onKeyDown)
@@ -242,13 +271,29 @@ export default function Canvas() {
             window.removeEventListener("dragover", onDragOver)
             window.removeEventListener("click", onClick)
 
-
             concept && concept.content.forEach(c => {
                 c.local.ref?.removeEventListener("mouseenter", () => onMouseEnter(c))
                 c.local.ref?.removeEventListener("mouseleave", onMouseLeave)
             })
         }
     }, [concept])
+
+    useEffect(() => {
+        registerCanvasCommands({
+            createContent: requestContentCreation,
+            createConcept
+        })
+
+        retrieveConcepts().then(c => {
+            setConsolePrefix("\\")
+            setConsoleCommands(c)
+            setShowConsole(true)
+        })
+
+        return () => {
+            resetCanvasCommands()
+        }
+    }, [])
 
 
     function startResize() {
@@ -288,8 +333,32 @@ export default function Canvas() {
             })
         }
         else {
-            createContent(type, data)
+            getProcessFunction(type)(data, (_data) => {
+                createContent(type, _data)
+            })
         }
+    }
+
+    function retrieveConcepts() {
+        return Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.LIST).then((r) => {
+            let concepts = r.data.data
+            let commands = []
+
+            concepts.sort((a, b) => new Date(a['updated_at']) > new Date(b['updated_at']) ? -1 : 1)
+
+            concepts.forEach(c => {
+                commands.push({
+                    name: c.name,
+                    displayName: c.name,
+                    icon: require('./icons/cloud.svg').default,
+                    callback: () => openConcept(c.id),
+                    prefix: '\\'
+                })
+            })
+
+            return commands
+
+        }).catch(console.error)
     }
 
     function createContent(type, data, position) {
@@ -309,8 +378,6 @@ export default function Canvas() {
             },
 
         }
-
-        console.log(content)
 
         let c = _.cloneDeep(conceptRef.current)
         c.content.push(content)
@@ -414,6 +481,7 @@ export default function Canvas() {
                                  resizeDelta={currentResizingContentId === c.local.id && resizeDelta}
                                  update={(data) => onContentUpdate(c.local.id, data)}
                                  style={{opacity: showResizerOnContentIdRef.current === c.local.id && dimCurrentResizingContent && 0.5}}
+                                 registerCommands={(cmds) => c.local.commands = cmds}
                         />
                         )
                     )
@@ -421,7 +489,7 @@ export default function Canvas() {
 
                 {
                     placeholders[0] && placeholders.map((p, id) => (
-                        <Placeholder key={id} ref={r => p.ref = r}
+                        <Placeholder key={id}
                                      x={p.x}
                                      y={p.y}
                                      icon={p.icon}
@@ -447,12 +515,10 @@ export default function Canvas() {
             {
                 showConsole &&
                 (<Console
+                    commands={consoleCommands}
+                    prefix={consolePrefix}
                     mousePosition={mousePosition.current}
                     close={() => setShowConsole(false)}
-                    requestContentCreation={requestContentCreation}
-                    createConcept={createConcept}
-                    openConcept={openConcept}
-
                 />)
             }
 

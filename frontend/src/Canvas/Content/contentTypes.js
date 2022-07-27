@@ -2,7 +2,8 @@ const types = {
     TEXT: 'text',
     VIDEO: 'video',
     IMAGE: 'image',
-    LINK: 'link'
+    LINK: 'link',
+    HTML: 'html'
 }
 
 export default {...types}

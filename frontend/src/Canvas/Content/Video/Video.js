@@ -2,7 +2,6 @@ import './Video.sass'
 import * as Backend from "../../../../../backend/config.js"
 
 export default function Video(props) {
-
     return (
         <video controls loop
                onMouseEnter={(e) => e.target.play()}

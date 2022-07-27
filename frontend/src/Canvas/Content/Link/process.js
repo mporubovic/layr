@@ -13,14 +13,8 @@ export default function (data, callback) {
         let description = siteData['og:description']
         let image = siteData['og:image']
 
-        console.log(siteData, {src, favicon, title, description, image})
-
         callback({
             src, favicon, title, description, image
         })
-
-        // console.log(siteData)
-
-        // callback({src: url})
     })
 }
