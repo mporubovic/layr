@@ -161,7 +161,9 @@ export default function Canvas() {
         setY(yRef.current + y)
     }
 
-    const onMouseEnter = (c) => setMouseIn(c.local.id)
+    const onMouseEnter = (c) => {
+        setMouseIn(c.local.id)
+    }
     const onMouseLeave = () => {
         if (metaDownRef.current && (mouseInRef.current || currentResizingContentIdRef.current)) return
         setMouseIn(null)
@@ -479,7 +481,7 @@ export default function Canvas() {
                     concept && concept.content.map((c) => (
                         <Content key={c.local.id} ref={(r) => c.local.ref = r}
                                  content={c}
-                                 lock={currentResizingContentId && currentResizingContentId !== c.local.id}
+                                 lock={metaDown}
                                  canvasScale={scale}
                                  resizeDelta={currentResizingContentId === c.local.id && resizeDelta}
                                  update={(data) => onContentUpdate(c.local.id, data)}

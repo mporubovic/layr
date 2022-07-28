@@ -1,6 +1,6 @@
 import styles from './Menu.module.sass'
 import InputBox from "./InputBox/InputBox";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 const Elements = {
     INPUT: (id, label, value, callback) => {
@@ -15,6 +15,18 @@ export default function Menu(props) {
 
     const [x, setX] = useState(props.mousePosition.x)
     const [y, setY] = useState(props.mousePosition.y)
+
+    const onKeyDown = (e) => {
+        if (e.key === 'Escape') props.close()
+    }
+
+    useEffect(() => {
+        window.addEventListener('keydown', onKeyDown)
+
+        return () => {
+            window.removeEventListener('keydown', onKeyDown)
+        }
+    })
 
     return (
         <div className={styles.menu} style={{

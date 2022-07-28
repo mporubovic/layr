@@ -8,9 +8,7 @@ export default function Video(props) {
                onMouseOut={(e) => e.target.pause()}
                className="video"
                src={Backend.Server.EXTERNAL_CONTENT_URL + "/" + props.src}
-               style={{
-                   ...props.style
-               }}
+               style={props.style}
         />
     )
 }
