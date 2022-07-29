@@ -8,7 +8,7 @@ export default function InputBox(props) {
     const inputRef = useRef('')
 
     const onKeyDown = (e) => {
-        if (e.key === 'Enter') props.close({ value: inputRef.current })
+        if (e.key === 'Enter') props.enter({ value: inputRef.current })
     }
 
 

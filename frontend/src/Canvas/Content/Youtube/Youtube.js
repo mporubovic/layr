@@ -23,8 +23,8 @@ export default function Youtube(props) {
     }, [])
 
 
-    const match = props.src.match(/([A-Za-z0-9_-]{11})/)
-    const videoId = match !== '' ? match[0] : 'eRqUE6IHTEA'
+    const match = props.src?.match(/([A-Za-z0-9_-]{11})/)
+    const videoId = match && match !== '' ? match[0] : 'jNQXAC9IVRw'
 
     return (
         <iframe className={styles.container} style={props.style}

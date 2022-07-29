@@ -7,7 +7,7 @@ export default function Console(props) {
     const [x, setX] = useState(props.mousePosition.x)
     const [y, setY] = useState(props.mousePosition.y)
 
-    const [inputValue, setInputValue, inputValueRef] = useStateRef('')
+    const inputValueRef = useRef('')
     const inputRef = useRef()
     const argumentsRef = useRef(null)
 
@@ -48,7 +48,7 @@ export default function Console(props) {
     }
 
     const onInput = (e) => {
-        setInputValue(e.target.innerText || "")
+        inputValueRef.current = e.target.innerText || ""
         renderResults()
     }
 
@@ -84,16 +84,7 @@ export default function Console(props) {
 
                 if (resultsRef.current.length > 0) {
                     let txt = resultsRef.current[highlightResultRef.current].name.toLowerCase() + " "
-                    setInputValue(txt)
-                    inputRef.current.innerText = txt
-
-                    // https://stackoverflow.com/questions/36284973/set-cursor-at-the-end-of-content-editable
-                    const range = document.createRange();//Create a range (a range is a like the selection but invisible)
-                    range.selectNodeContents(inputRef.current);//Select the entire contents of the element with the range
-                    range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
-                    const selection = window.getSelection();//get the selection object (allows you to change selection)
-                    selection.removeAllRanges();//remove any selections already made
-                    selection.addRange(range);//make the range you have just created the visible selection
+                    updateInput(txt)
                 }
 
                 break
@@ -112,14 +103,30 @@ export default function Console(props) {
     }
 
     const onPaste = (e) => {
+        e.preventDefault()
         let text = e.clipboardData.getData('text')
-        setInputValue((i) => i + text)
+        updateInput(text)
         renderResults()
+    }
+
+    const updateInput = (val) => {
+        inputValueRef.current = val
+        inputRef.current.innerText = val
+
+        // https://stackoverflow.com/questions/36284973/set-cursor-at-the-end-of-content-editable
+        const range = document.createRange();//Create a range (a range is a like the selection but invisible)
+        range.selectNodeContents(inputRef.current);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        const selection = window.getSelection();//get the selection object (allows you to change selection)
+        selection.removeAllRanges();//remove any selections already made
+        selection.addRange(range);//make the range you have just created the visible selection
     }
 
     useEffect(() => {
         window.addEventListener("keydown", onKeyDown)
-        window.addEventListener('paste', onPaste)
+        inputRef.current.addEventListener('paste', onPaste)
+
+        const _ref = inputRef.current
 
         setTimeout(() => {
             inputRef.current.focus()
@@ -127,7 +134,7 @@ export default function Console(props) {
 
         return () => {
             window.removeEventListener("keydown", onKeyDown)
-            window.removeEventListener('paste', onPaste)
+            _ref.removeEventListener('paste', onPaste)
 
         }
     }, [])
