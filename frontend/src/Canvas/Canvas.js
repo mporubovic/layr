@@ -439,12 +439,9 @@ export default function Canvas() {
                 }
             }
 
-            console.log("Posting to backend", c)
             c.content = JSON.stringify(c.content)
             c.metadata = JSON.stringify(c.metadata)
-            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: c}).then((r) => {
-                if (r.data.status === Backend.Status.ERROR) console.warn(r.data.error)
-            })
+            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: c})
         }, 1000)
 
     }
