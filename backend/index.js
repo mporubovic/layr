@@ -8,6 +8,7 @@ import { Server, Endpoint } from "./config.js"
 import Concepts from "./endpoints/concepts.js";
 import Content from "./endpoints/content.js";
 import Site_data from "./endpoints/site_data.js";
+import Admin from "./endpoints/admin.js";
 
 const storage = multer.diskStorage({
     destination: Server.INTERNAL_CONTENT_PATH,
@@ -28,6 +29,7 @@ connection.connect()
 app.post(Endpoint.CONCEPTS, Concepts)
 app.post(Endpoint.CONTENT, upload.single('file'), Content)
 app.post(Endpoint.SITE_DATA, Site_data)
+app.post(Endpoint.ADMIN, Admin)
 
 app.listen(Server.PORT, (a) => {
     console.log("Listening on " + Server.URL)

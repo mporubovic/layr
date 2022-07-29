@@ -3,7 +3,8 @@ const Server = {
     PORT: 2001,
     PUBLIC_PATH: '/public',
     STORAGE_PATH: '/storage',
-    CACHE_PATH: '/cache'
+    CACHE_PATH: '/cache',
+    BACKUP_PATH: '/backup'
 }
 
 Server.URL = `http://${Server.IP}:${Server.PORT}`
@@ -15,7 +16,8 @@ Server.EXTERNAL_CACHE_URL = Server.URL + Server.CACHE_PATH
 const Endpoint = {
     CONCEPTS: "/concepts",
     CONTENT: "/content",
-    SITE_DATA: "/site-data"
+    SITE_DATA: "/site-data",
+    ADMIN: '/admin'
 }
 
 const Operation = {
@@ -24,6 +26,10 @@ const Operation = {
     CREATE: 'create',
     UPDATE: 'update',
     DELETE: 'delete',
+}
+
+const AdminOperation = {
+    BACKUP: 'backup'
 }
 
 const Status = {
@@ -40,4 +46,4 @@ const Error = {
     SITE_DATA_TITLE_NOT_FOUND: "Title not found"
 }
 
-export { Server, Endpoint, Operation, Status, Error }
+export { Server, Endpoint, Operation, Status, Error, AdminOperation }
