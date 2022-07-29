@@ -131,6 +131,8 @@ export default function Canvas() {
 
         if (gesture === "zoom") onZoom(e)
         else if (gesture === "pan") onPan(e)
+
+        postUpdatedConcept()
     }
 
     function onZoom(e) {
@@ -409,40 +411,54 @@ export default function Canvas() {
         postUpdatedConcept(c)
     }
 
-    function postUpdatedConcept(c) {
-        let _c = _.cloneDeep(c)
-
-        _c.content.forEach(__c => {
-            delete __c.local
-        })
-
-
-        sendToBackend(_c)
-    }
-
-    function sendToBackend(data) {
+    function postUpdatedConcept(_c = conceptRef.current) {
         if (backendTimeout.current) clearTimeout(backendTimeout.current)
 
         backendTimeout.current = setTimeout(() => {
-            console.log("Posting to backend", _.cloneDeep(data))
-            data.content = JSON.stringify(data.content)
-            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: data}).then((r) => {
+            let c = _.cloneDeep(_c)
+
+            c.content.forEach(__c => {
+                delete __c.local
+            })
+
+            c.metadata = {
+                canvas: {
+                    x: xRef.current,
+                    y: yRef.current,
+                    scale: scaleRef.current
+                }
+            }
+
+            console.log("Posting to backend", c)
+            c.content = JSON.stringify(c.content)
+            c.metadata = JSON.stringify(c.metadata)
+            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: c}).then((r) => {
                 if (r.data.status === Backend.Status.ERROR) console.warn(r.data.error)
             })
         }, 1000)
+
     }
+
+
 
     function openConcept(id) {
         setShowConsole(false)
         Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.ONE, {concept: {id}}).then((r) => {
             let _concept = r.data.data
             _concept.content = JSON.parse(_concept.content)
+            _concept.metadata = JSON.parse(_concept.metadata)
             _concept.content.forEach(c => {
                 c.local = {
                     id: uuidv4(),
                     ref: null,
                 }
             })
+
+            if (_concept.metadata) {
+                setX(_concept.metadata.canvas.x)
+                setY(_concept.metadata.canvas.y)
+                setScale(_concept.metadata.canvas.scale)
+            }
 
             setConcept(_concept)
         })

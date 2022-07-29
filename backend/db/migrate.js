@@ -18,8 +18,8 @@ connection.query("INSERT INTO users (name) VALUES (?)", ["Peter"])
 
 defaultConcepts.forEach(c => {
     connection.query(
-        "INSERT INTO concepts (name, user_id, content) VALUES (?, ?, ?)",
-        [c.name, 1, JSON.stringify(c.content)]
+        "INSERT INTO concepts (name, user_id, content, metadata) VALUES (?, ?, ?, ?)",
+        [c.name, 1, JSON.stringify(c.content), JSON.stringify(c.metadata)]
     )
 })
 

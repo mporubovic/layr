@@ -3,6 +3,13 @@
         "id": 1,
         "name": "Nothing.tech",
         "user_id": 1,
+        "metadata": {
+            "canvas": {
+                "x": 0,
+                "y": 0,
+                "scale": 1
+            }
+        },
         "content": [
             {
                 "x": -377.66632067956544,
@@ -114,6 +121,13 @@
         "id": 2,
         "name": "Small is beautiful exhibition",
         "user_id": 1,
+        "metadata": {
+            "canvas": {
+                "x": 0,
+                "y": 0,
+                "scale": 1
+            }
+        },
         "content": [
             {
                 "x": -815.7462796217891,

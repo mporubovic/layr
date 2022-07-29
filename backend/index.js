@@ -75,8 +75,8 @@ app.post(Endpoint.CONCEPTS, (req, res) => {
             break
         case Operation.UPDATE:
             // language=MySQL
-            query = "UPDATE concepts SET name = ?, content = ? WHERE id = ?"
-            values = [req.body.concept.name, req.body.concept.content, req.body.concept.id]
+            query = "UPDATE concepts SET name = ?, content = ?, metadata = ? WHERE id = ?"
+            values = [req.body.concept.name, req.body.concept.content, req.body.concept.metadata, req.body.concept.id]
             guard = (next, err) => userGuard(req.body.concept.id, next, err)
             process = (d) => null
             break

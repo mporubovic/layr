@@ -13,6 +13,7 @@ CREATE TABLE concepts
     name        text NOT NULL,
     user_id     int  NOT NULL,
     content     json NULL,
+    metadata    json NULL,
     created_at  timestamp DEFAULT current_timestamp,
     updated_at  timestamp DEFAULT current_timestamp ON UPDATE current_timestamp,
 
