@@ -29,6 +29,8 @@ export default function Canvas() {
 
     const [currentResizingContentId, setCurrentResizingContentId, currentResizingContentIdRef] = useStateRef(null)
     const [dimCurrentResizingContent, setDimCurrentResizingContent] = useStateRef(false)
+    const currentContentIsFocusedRef = useRef(false)
+
     const [metaDown, setMetaDown, metaDownRef] = useStateRef(false)
     const [mouseIn, setMouseIn, mouseInRef] = useStateRef(null)
     const [resizeDelta, setResizeDelta] = useState(null)
@@ -55,7 +57,7 @@ export default function Canvas() {
     const [menuItems, setMenuItems] = useState(null)
 
     const onKeyDown = (e) => {
-        e.key === "Meta" && setMetaDown(true)
+        e.key === "Meta" && !currentContentIsFocusedRef.current && setMetaDown(true)
         if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current) {
             if (e.key === "/") {
                 let content = conceptRef.current?.content.find(c => c.local.id === mouseInRef.current)
@@ -226,6 +228,14 @@ export default function Canvas() {
         }
 
         clickTimeStamp.current = e.timeStamp
+    }
+
+    const onContentFocus = (id) => {
+        currentContentIsFocusedRef.current = true
+    }
+
+    const onContentBlur = (id) => {
+        currentContentIsFocusedRef.current = false
     }
 
     const onDrop = (e) => {
@@ -504,6 +514,8 @@ export default function Canvas() {
                                  style={{opacity: showResizerOnContentIdRef.current === c.local.id && dimCurrentResizingContent && 0.5}}
                                  registerCommands={(cmds) => c.local.commands = cmds}
                                  setMenuItems={setMenuItems}
+                                 onFocus={onContentFocus}
+                                 onBlur={onContentBlur}
                         />
                         )
                     )

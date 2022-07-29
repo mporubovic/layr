@@ -10,6 +10,7 @@ export default function Text(props) {
 
     const changeText = (t) => {
         props.update({text: t})
+        props.onBlur()
         setText(t)
     }
 
@@ -19,7 +20,7 @@ export default function Text(props) {
 
     return (
         <div contentEditable={!props.lock} suppressContentEditableWarning={true}
-             className="text" ref={ref} onBlur={e => changeText(e.target.innerHTML)}
+             className="text" ref={ref} onBlur={e => changeText(e.target.innerHTML)} onFocus={props.onFocus}
              style={{
                 fontSize: font + "px",
                 ...props.style

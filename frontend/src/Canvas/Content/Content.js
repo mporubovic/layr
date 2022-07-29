@@ -93,6 +93,9 @@ export default forwardRef((props, inRef) => {
 
                            registerCommands={props.registerCommands}
                            setMenuItems={props.setMenuItems}
+
+                           onFocus={props.onFocus}
+                           onBlur={props.onBlur}
                 />
             }
 
