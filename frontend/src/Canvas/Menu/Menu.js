@@ -37,7 +37,7 @@ export default function Menu(props) {
                     const Component = item.component
 
                     return (
-                        <Component key={idx} {...item} close={(data) => {
+                        <Component key={idx} {...item} enter={(data) => {
                             item.callback(data)
                             props.close()
                         }} />

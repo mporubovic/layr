@@ -1,19 +1,22 @@
 import styles from './Console.module.sass'
 import {useEffect, useRef, useState} from "react";
 import useStateRef from "react-usestateref";
-import _ from "lodash";
+import inputStyles from '../Menu/InputBox/InputBox.module.sass'
 
 export default function Console(props) {
     const [x, setX] = useState(props.mousePosition.x)
     const [y, setY] = useState(props.mousePosition.y)
 
-    const [input, setInput, inputRef] = useStateRef(props.prefix)
+    const [inputValue, setInputValue, inputValueRef] = useStateRef('')
+    const inputRef = useRef()
     const argumentsRef = useRef(null)
 
     const commandsRef = useRef([])
 
     const [results, setResults, resultsRef] = useStateRef([])
     const [highlightResult, setHighlightResult, highlightResultRef] = useStateRef(0)
+
+    const label = props.prefix === "/" ? 'COMMAND' : 'CONCEPT'
 
     useEffect(() => {
         commandsRef.current = props.commands
@@ -28,39 +31,29 @@ export default function Console(props) {
     }
 
     const renderResults = () => {
-        let prefix = inputRef.current[0]
-        // if (inputRef.current && inputRef.current[0] === "/") {
-            let inpt = inputRef.current.split(" ")
-            let command = inpt[0].slice(1).toLowerCase()
-            let args = inpt.slice(1, inpt.length)
-            argumentsRef.current = args
+        // if (!inputRef.current) return
 
-            let _results =
-                commandsRef.current ? commandsRef.current
-                    // .filter(k => k.name.toLowerCase().indexOf(command) === 0)
-                    .filter(k => k.prefix === prefix)
+        let inpt = inputValueRef.current.split(" ")
+        let command = inpt[0].toLowerCase()
+        argumentsRef.current = inpt.slice(1, inpt.length)
+
+        let _results =
+            commandsRef.current
+                ? commandsRef.current
                     .filter(k => k.name.toLowerCase().indexOf(command) === 0)
-                    .reduce((arr, key) => {
-                        let cmnd = _.cloneDeep(key)
+                : []
 
-                        if (cmnd.argument && args.length !== 0) {
-                            let name = args.reduce((a, b) => a+" "+b)
-                            cmnd.displayName = `${cmnd.name} "${name}"`
-                            // cmnd.callback = () => props.createConcept(name)
-                        }
+        setResults(_results)
 
-                        arr.push(cmnd)
-                        return arr
-                    }, []) : []
-
-            setResults(_results)
-
-        // }
     }
 
-
+    const onInput = (e) => {
+        setInputValue(e.target.innerText || "")
+        renderResults()
+    }
 
     const onKeyDown = (e) => {
+        // return
         switch (e.key) {
             case "ArrowDown":
                 setHighlightResult((s) => {
@@ -75,8 +68,7 @@ export default function Console(props) {
                 })
                 break
             case "Backspace":
-                if (inputRef.current.length === 1) props.close()
-                else setInput((i) => i.slice(0, i.length-1))
+                if (inputRef.current.length === 0) props.close()
                 break
             case "Enter":
                 if (resultsRef.current.length > 0) {
@@ -91,18 +83,28 @@ export default function Console(props) {
                 e.preventDefault()
 
                 if (resultsRef.current.length > 0) {
-                    setInput("/" + resultsRef.current[highlightResultRef.current].name.toLowerCase() + " ")
+                    let txt = resultsRef.current[highlightResultRef.current].name.toLowerCase() + " "
+                    setInputValue(txt)
+                    inputRef.current.innerText = txt
+
+                    // https://stackoverflow.com/questions/36284973/set-cursor-at-the-end-of-content-editable
+                    const range = document.createRange();//Create a range (a range is a like the selection but invisible)
+                    range.selectNodeContents(inputRef.current);//Select the entire contents of the element with the range
+                    range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+                    const selection = window.getSelection();//get the selection object (allows you to change selection)
+                    selection.removeAllRanges();//remove any selections already made
+                    selection.addRange(range);//make the range you have just created the visible selection
                 }
 
                 break
             default:
-                if (e.key.length === 1) {
-                    // if (e.key.match(/[vc]/i)) return
-                    if (e.key.match(/[\w\d.\\\-: /]/i)) {
-                        setInput((i) => i + e.key)
-                        setHighlightResult(0)
-                    }
-                }
+                // if (e.key.length === 1) {
+                //     // if (e.key.match(/[vc]/i)) return
+                //     if (e.key.match(/[\w\d.\\\-: /]/i)) {
+                //         setInput((i) => i + e.key)
+                //         setHighlightResult(0)
+                //     }
+                // }
         }
 
         renderResults()
@@ -111,13 +113,17 @@ export default function Console(props) {
 
     const onPaste = (e) => {
         let text = e.clipboardData.getData('text')
-        setInput((i) => i + text)
+        setInputValue((i) => i + text)
         renderResults()
     }
 
     useEffect(() => {
         window.addEventListener("keydown", onKeyDown)
         window.addEventListener('paste', onPaste)
+
+        setTimeout(() => {
+            inputRef.current.focus()
+        }, 0)
 
         return () => {
             window.removeEventListener("keydown", onKeyDown)
@@ -130,20 +136,32 @@ export default function Console(props) {
         <div className={styles.console} style={{
             transform: `translate(${x}px, ${y}px)`
         }}>
-            <div className={styles.input}>
-                {input}
+            <div className={inputStyles.inputBox}>
+                <div className={inputStyles.label}> { label } </div>
+                <span ref={inputRef}
+                      className={inputStyles.input}
+                      role="textbox"
+                      contentEditable
+                      onInput={onInput}
+                />
             </div>
 
             <div className={styles.results}>
                 {
                     results.map((r, i) =>
                         (<div key={r.name} className={styles.result} onClick={() => runCommand(r)}
-                            style={{
-                                backgroundColor: highlightResult === i && "red"
-                            }}
+                              style={{
+                                  backgroundColor: highlightResult === i && "white"
+                              }}
                         >
-                            { r.icon && (<img src={r.icon} />) }
-                            <span style={{ marginLeft: r.icon && "20px" }}>{r.displayName}</span>
+                            <div className={styles.iconWrapper}>
+                                {r.icon && (<img src={r.icon} style={{filter: highlightResult === i && "invert(1)"}}/>)}
+                            </div>
+
+                            <span style={{
+                                marginLeft: r.icon && "20px",
+                                color: highlightResult === i ? 'black' : 'white'
+                            }}>{r.displayName}</span>
                         </div>)
                     )
                 }
