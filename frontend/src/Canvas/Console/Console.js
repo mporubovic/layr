@@ -105,7 +105,7 @@ export default function Console(props) {
     const onPaste = (e) => {
         e.preventDefault()
         let text = e.clipboardData.getData('text')
-        updateInput(text)
+        updateInput(inputValueRef.current + text)
         renderResults()
     }
 
