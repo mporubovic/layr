@@ -351,7 +351,11 @@ export default function Canvas() {
         }
         else {
             getProcessFunction(type)(data, (_data) => {
-                createContent(type, _data)
+                let ctnt = createContent(type, _data)
+
+                return (__data) => {
+                    onContentUpdate(ctnt.local.id, __data)
+                }
             })
         }
     }
@@ -399,8 +403,11 @@ export default function Canvas() {
         let c = _.cloneDeep(conceptRef.current)
         c.content.push(content)
 
-        postUpdatedConcept(c)
         setConcept(c)
+        postUpdatedConcept(c)
+
+        return content
+
     }
 
     function deleteContent(id) {
