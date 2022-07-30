@@ -340,11 +340,7 @@ export default function Canvas() {
             ])
 
             getProcessFunction(type)(data, (_data) => {
-                setPlaceholders(ps => {
-                    let arr = [...ps]
-                    arr.pop()
-                    return arr
-                })
+                setPlaceholders(ps => ps.slice(0, ps.length-1))
                 createContent(type, _data, relativePosition)
 
             })
