@@ -4,6 +4,8 @@ import {Elements} from "../../Menu/Menu.js";
 
 export default function Youtube(props) {
 
+    const [active, setActive] = useState(false)
+
     useEffect(() => {
         props.registerCommands([
             {
@@ -27,13 +29,28 @@ export default function Youtube(props) {
     const videoId = match && match !== '' ? match[0] : 'jNQXAC9IVRw'
 
     return (
-        <iframe className={styles.container} style={props.style}
-                width='560' height='315'
-                src={'https://www.youtube-nocookie.com/embed/' + videoId}
-                allow='encrypted-media; picture-in-picture'
-                sandbox='allow-scripts allow-same-origin'
-                title='YouTube video player'
-                allowFullScreen
-        />
+        <div className={styles.container}
+             onMouseLeave={() => setActive(false)}
+             onClick={() => {
+                 if (!active) setActive(true)
+             }}
+             style={{
+                 cursor: !active && 'pointer'
+             }}
+        >
+
+            <iframe
+                    style={{
+                        ...props.style,
+                        pointerEvents: !active && 'none',
+                    }}
+                    width='560' height='315'
+                    src={'https://www.youtube-nocookie.com/embed/' + videoId}
+                    allow='encrypted-media; picture-in-picture'
+                    sandbox='allow-scripts allow-same-origin'
+                    title='YouTube video player'
+                    allowFullScreen
+            />
+        </div>
     )
 }

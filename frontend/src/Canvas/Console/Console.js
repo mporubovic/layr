@@ -24,7 +24,7 @@ export default function Console(props) {
     }, [props.commands])
 
     const runCommand = (cmd) => {
-        let argumentString = argumentsRef.current && (argumentsRef.current.length > 0 ? argumentsRef.current.join("") : null)
+        let argumentString = argumentsRef.current && (argumentsRef.current.length > 0 ? argumentsRef.current.join(" ") : null)
         let callbackData = { [cmd.argument]: argumentString }
         cmd.callback(callbackData)
         props.close()

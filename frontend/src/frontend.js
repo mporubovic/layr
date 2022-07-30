@@ -6,10 +6,10 @@ const user = {
 }
 
 const request = (endpoint, operation, data, config) => {
-    console.debug(`[Frontend ⮕ Backend] [${endpoint}] [${operation}]`, data)
+    console.debug(`[⬆] [${endpoint}] [${operation}]`, data)
     return axios.post(Backend.Server.URL + endpoint, {user, operation, ...data}, config).then((r) => {
         if (r.data.status === Backend.Status.ERROR) console.warn("[Backend ⮕ Frontend]", r.data.error)
-        else console.debug("[Backend ⮕ Frontend]", r.data)
+        else console.debug("[⬇]", r.data)
         return r
     })
 }
