@@ -2,7 +2,7 @@ import './Canvas.sass'
 import {useEffect, useRef, useState} from "react";
 import Content from "./Content/Content";
 import useStateRef from "react-usestateref";
-import Resizer from "./Content/Resizer/Resizer";
+import Resizer from "./Resizer/Resizer";
 import Console from "./Console/Console";
 import contentTypes, {getProcessFunction, getIcon} from "./Content/contentTypes";
 import {v4 as uuidv4} from "uuid"
