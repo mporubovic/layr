@@ -58,7 +58,7 @@ export default function Canvas() {
 
     const onKeyDown = (e) => {
         e.key === "Meta" && !currentContentIsFocusedRef.current && setMetaDown(true)
-        if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current) {
+        if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current && !currentContentIsFocusedRef.current) {
             if (e.key === "/") {
                 let content = conceptRef.current?.content.find(c => c.local.id === mouseInRef.current)
 
