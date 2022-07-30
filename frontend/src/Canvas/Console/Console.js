@@ -40,10 +40,11 @@ export default function Console(props) {
         let _results =
             commandsRef.current
                 ? commandsRef.current
-                    .filter(k => k.name.toLowerCase().indexOf(command) === 0)
+                    .filter(k => k.name.toLowerCase().indexOf(command) !== -1)
                 : []
 
         setResults(_results)
+        setHighlightResult(0)
 
     }
 
@@ -53,7 +54,6 @@ export default function Console(props) {
     }
 
     const onKeyDown = (e) => {
-        // return
         switch (e.key) {
             case "ArrowDown":
                 setHighlightResult((s) => {
@@ -69,6 +69,7 @@ export default function Console(props) {
                 break
             case "Backspace":
                 if (inputRef.current.length === 0) props.close()
+                renderResults()
                 break
             case "Enter":
                 if (resultsRef.current.length > 0) {
@@ -83,22 +84,14 @@ export default function Console(props) {
                 e.preventDefault()
 
                 if (resultsRef.current.length > 0) {
-                    let txt = resultsRef.current[highlightResultRef.current].name.toLowerCase() + " "
+                    let txt = resultsRef.current[highlightResultRef.current].name + " "
                     updateInput(txt)
+                    renderResults()
                 }
 
                 break
-            default:
-                // if (e.key.length === 1) {
-                //     // if (e.key.match(/[vc]/i)) return
-                //     if (e.key.match(/[\w\d.\\\-: /]/i)) {
-                //         setInput((i) => i + e.key)
-                //         setHighlightResult(0)
-                //     }
-                // }
         }
 
-        renderResults()
 
     }
 
