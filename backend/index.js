@@ -8,7 +8,7 @@ import { Server, Endpoint } from "./config.js"
 import Concepts from "./endpoints/concepts.js";
 import Content from "./endpoints/content.js";
 import Site_data from "./endpoints/site_data.js";
-import Admin from "./endpoints/admin.js";
+import Admin, {backup} from "./endpoints/admin.js";
 
 const storage = multer.diskStorage({
     destination: Server.INTERNAL_CONTENT_PATH,
@@ -34,3 +34,7 @@ app.post(Endpoint.ADMIN, Admin)
 app.listen(Server.PORT, (a) => {
     console.log("Listening on " + Server.URL)
 })
+
+setInterval(() => {
+    backup()
+}, Server.BACKUP_INTERVAL)
