@@ -47,7 +47,7 @@ export default function Youtube(props) {
                     width='560' height='315'
                     src={'https://www.youtube-nocookie.com/embed/' + videoId}
                     allow='encrypted-media; picture-in-picture'
-                    sandbox='allow-scripts allow-same-origin'
+                    sandbox='allow-scripts allow-same-origin allow-popups'
                     title='YouTube video player'
                     allowFullScreen
             />
