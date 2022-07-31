@@ -1,4 +1,5 @@
 import contentTypes, {getIcon} from "./Content/contentTypes";
+import programs from "./Programs/programs";
 
 export const canvasCommands = []
 
@@ -29,6 +30,15 @@ export function register(callbacks) {
         icon: require('./icons/cloud.svg').default,
         callback: (data) => callbacks.createConcept(data),
         argument: 'name',
+        prefix: '/'
+    })
+
+    canvasCommands.push({
+        name: 'wikidata',
+        displayName: 'wikidata',
+        icon: require('./Programs/Wikidata/Wikidata-logo-top-white.svg').default,
+        callback: (data) => callbacks.openProgram(programs.WIKIDATA),
+        // argument: 'name',
         prefix: '/'
     })
 }

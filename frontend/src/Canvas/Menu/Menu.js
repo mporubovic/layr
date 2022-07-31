@@ -1,5 +1,5 @@
 import styles from './Menu.module.sass'
-import InputBox from "./InputBox/InputBox";
+import InputBox from "../../UI/InputBox/InputBox";
 import {useEffect, useState} from "react";
 
 const Elements = {

@@ -56,9 +56,13 @@ export default function Canvas() {
 
     const [menuItems, setMenuItems] = useState(null)
 
+    const [program, setProgram] = useState(null)
+    const Program = program && program.component
+
     const onKeyDown = (e) => {
         e.key === "Meta" && !currentContentIsFocusedRef.current && setMetaDown(true)
         if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current && !currentContentIsFocusedRef.current) {
+            e.preventDefault()
             if (e.key === "/") {
                 let content = conceptRef.current?.content.find(c => c.local.id === mouseInRef.current)
 
@@ -295,16 +299,24 @@ export default function Canvas() {
         }
     }, [concept])
 
+    const openProgram = (p) => {
+        setProgram(p)
+    }
+
     useEffect(() => {
         registerCanvasCommands({
             createContent: requestContentCreation,
-            createConcept
+            createConcept,
+            openProgram: openProgram
         })
 
         retrieveConcepts().then(c => {
-            setConsolePrefix("\\")
-            setConsoleCommands(c)
-            setShowConsole(true)
+            // setConsolePrefix("\\")
+            // setConsoleCommands(c)
+            // setConsolePrefix("/")
+            // setConsoleCommands(canvasCommands)
+            //
+            // setShowConsole(true)
         })
 
         return () => {
@@ -425,6 +437,7 @@ export default function Canvas() {
     }
 
     function postUpdatedConcept(_c = conceptRef.current) {
+        if (!_c) return
         if (backendTimeout.current) clearTimeout(backendTimeout.current)
 
         backendTimeout.current = setTimeout(() => {
@@ -550,7 +563,7 @@ export default function Canvas() {
                 showConsole &&
                 (<Console
                     commands={consoleCommands}
-                    prefix={consolePrefix}
+                    label={consolePrefix === '/' ? 'COMMAND' : 'CONCEPT'}
                     mousePosition={mousePosition.current}
                     close={() => setShowConsole(false)}
                 />)
@@ -563,6 +576,16 @@ export default function Canvas() {
                         items={menuItems}
                         mousePosition={mousePosition.current}
                         close={() => setMenuItems(null)}
+                    />
+                )
+            }
+
+            {
+                program &&
+                (
+                    <Program
+                        mousePosition={mousePosition.current}
+                        close={() => setProgram(null)}
                     />
                 )
             }
