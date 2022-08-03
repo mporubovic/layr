@@ -5,6 +5,8 @@ import InputBox from "../../../UI/InputBox/InputBox";
 import List from "../../../UI/List/List";
 import consoleStyles from '../../Console/Console.module.sass'
 import Resizer from "../../Resizer/Resizer";
+import {canvasCommands} from "../../canvasCommands";
+import useStateRef from "react-usestateref";
 
 export default function Wikidata(props) {
     const [x, setX] = useState(props.mousePosition.x)
@@ -17,7 +19,21 @@ export default function Wikidata(props) {
     const uiRef = useRef()
     const [showResizer, setShowResizer] = useState(false)
 
+    const [searchString, setSearchString, searchStringRef] = useStateRef('')
+
+    const createConcept = () => {
+        return {
+            name: 'concept',
+            displayName: (<> Create concept <strong>{ searchStringRef.current }</strong> </>),
+            callback: (data) => null,
+            argument: 'name',
+            prefix: '/',
+            style: { backgroundColor: 'yellow' }
+        }
+    }
+
     const search = (s) => {
+
         axios.get('https://www.wikidata.org/w/api.php', {
             params: {
                 action: 'wbsearchentities',
@@ -39,11 +55,14 @@ export default function Wikidata(props) {
                 })
             })
 
+            if (finalResults.length === 0) finalResults = null
+
             setSearchResults(finalResults)
         })
     }
 
     const onInput = (value) => {
+        setSearchString(value)
         if (inputTimeoutRef.current) clearTimeout(inputTimeoutRef.current)
 
         inputTimeoutRef.current = setTimeout(() => {
@@ -85,13 +104,14 @@ export default function Wikidata(props) {
                 label={'WIKIDATA SEARCH'}
                 initialValue={''}
                 onInput={onInput}
+                noSpellCheck={true}
             />
 
             {
-                searchResults.length > 0 &&
+                searchString.length > 0 &&
                 (
                     <List
-                        items={searchResults}
+                        items={searchResults !== null ? searchResults : [createConcept()] }
                     />
                 )
             }
