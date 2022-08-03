@@ -1,5 +1,5 @@
 import styles from './Html.module.sass'
-import {memo, useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/theme-solarized_dark";
@@ -10,8 +10,9 @@ import "ace-builds/webpack-resolver"
 export default function Html(props) {
     const ref = useRef()
     const [editing, setEditing] = useState(false)
-    // const [editing, setEditing] = useState(true)
     const htmlRef = useRef(props.html)
+
+    const [active, setActive] = useState(false)
 
     const onChange = (html) => {
         htmlRef.current = html
@@ -46,10 +47,15 @@ export default function Html(props) {
 
 
     return (
-        <div className={styles.wrapper} ref={ref} style={{
-            ...props.style,
-            transform: editing ? `scale(${1 / props.scale})` : undefined
-        }}>
+        <div className={styles.wrapper} ref={ref}
+            onMouseLeave={() => setActive(false)}
+            onClick={() => {if (!active) setActive(true)}}
+            style={{
+                ...props.style,
+                transform: editing ? `scale(${1 / props.scale})` : undefined,
+                cursor: !active && 'pointer'
+            }}
+        >
             {
                 editing
                     ? (<div className={styles.editor}>
@@ -76,7 +82,12 @@ export default function Html(props) {
                                 }}/>
                         </div>
                     )
-                    : (<div className={styles.html} dangerouslySetInnerHTML={{__html: htmlRef.current}} />)
+                    : (<div className={styles.html}
+                            dangerouslySetInnerHTML={{__html: htmlRef.current}}
+                            style={{
+                                pointerEvents: !active && 'none',
+                            }}
+                />)
             }
 
 
