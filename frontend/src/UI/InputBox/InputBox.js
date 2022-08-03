@@ -16,7 +16,7 @@ export default function InputBox(props) {
     }
 
     const onInput = (txt) => {
-        props.onInput(txt)
+        if (props.onInput) props.onInput(txt)
     }
 
     const onPaste = (e) => {
@@ -24,8 +24,7 @@ export default function InputBox(props) {
         let text = e.clipboardData.getData('text')
         let txt = ref.current.innerText + text
         updateInput(txt)
-        props.onInput(txt)
-        // renderResults()
+        onInput(txt)
     }
 
     const updateInput = (val) => {
@@ -57,7 +56,11 @@ export default function InputBox(props) {
     }, [])
 
     return (
-        <div className={styles.inputBox}>
+        <div className={styles.inputBox}
+             style={{
+                 flexDirection: props.row ? 'row' : 'column'
+             }}
+        >
             <div className={styles.label}> { props.label } </div>
             <span ref={ref}
                   className={styles.input}

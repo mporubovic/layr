@@ -1,5 +1,5 @@
 import {useRef, useEffect} from "react";
-import style from './Resizer.module.sass'
+import styles from './Resizer.module.sass'
 
 export default function Resizer(props) {
 
@@ -11,7 +11,22 @@ export default function Resizer(props) {
     const div = useRef()
     const resizing = pointerDownRef.current
 
-    const contentRect = props.content.local.ref.getBoundingClientRect()
+    const contentRect = props.contentRef.getBoundingClientRect()
+
+    const style =
+        props.relative
+        ?
+        {
+            transform: `translate(${0 - (outerPadding + innerPadding)}px, ${0 - (outerPadding + innerPadding)}px)`,
+            height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
+            width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
+        }
+        :
+        {
+            transform: `translate(${contentRect.x - (outerPadding + innerPadding)}px, ${contentRect.y - (outerPadding + innerPadding)}px)`,
+            height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
+            width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
+        }
 
     function corner(c) {
         if (resizing) return
@@ -83,12 +98,8 @@ export default function Resizer(props) {
 
 
     return (
-        <div className={style.resizer} ref={div}
-             style={{
-                 transform: `translate(${contentRect.x - (outerPadding + innerPadding)}px, ${contentRect.y - (outerPadding + innerPadding)}px)`,
-                 height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
-                 width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
-             }}
+        <div className={styles.resizer} ref={div}
+             style={style}
              onMouseLeave={props.onMouseLeave}
         >
 
@@ -104,15 +115,15 @@ export default function Resizer(props) {
             <div onMouseEnter={() => corner("b")} />
             <div onMouseEnter={() => corner("br")} />
 
-            <div className={style.tlCorner} />
-            <div className={style.trCorner} />
-            <div className={style.blCorner} />
-            <div className={style.brCorner} />
+            <div className={styles.tlCorner} />
+            <div className={styles.trCorner} />
+            <div className={styles.blCorner} />
+            <div className={styles.brCorner} />
 
-            <div className={style.left} />
-            <div className={style.right} />
-            <div className={style.top} />
-            <div className={style.bottom} />
+            <div className={styles.left} />
+            <div className={styles.right} />
+            <div className={styles.top} />
+            <div className={styles.bottom} />
 
         </div>
     )

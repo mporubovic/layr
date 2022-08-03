@@ -549,9 +549,8 @@ export default function Canvas() {
             {
                 showResizerRef.current &&
                 (<Resizer
-                    content={concept.content.find(c => c.local.id === (mouseIn || currentResizingContentId))}
+                    contentRef={concept.content.find(c => c.local.id === (mouseIn || currentResizingContentId)).local.ref}
                     onMouseLeave={() => setMouseIn(null)}
-                    canvas={{x, y, scale}}
                     pointerMove={onResize}
                     pointerUp={stopResize}
                     pointerDown={startResize}

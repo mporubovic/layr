@@ -5,7 +5,7 @@ import {useEffect, useState} from "react";
 const Elements = {
     INPUT: (id, label, value, callback) => {
         return {
-            id, label, value, callback,
+            id, label, initialValue: value, callback,
             type: 'INPUT', component: InputBox
         }
     }
@@ -37,7 +37,7 @@ export default function Menu(props) {
                     const Component = item.component
 
                     return (
-                        <Component key={idx} {...item} enter={(data) => {
+                        <Component key={idx} {...item} onEnter={(data) => {
                             item.callback(data)
                             props.close()
                         }} />
