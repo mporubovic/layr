@@ -66,6 +66,7 @@ export default function InputBox(props) {
                   className={styles.input}
                   role='textbox'
                   contentEditable
+                  spellCheck={!props.noSpellCheck}
                   onInput={(e) => onInput(e.target.innerText)}
             />
         </div>

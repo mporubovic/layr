@@ -70,11 +70,12 @@ export default function List(props) {
         <div className={styles.list}>
             {
                 items.map((item, idx) =>
-                    (<div key={item.name} className={styles.item}
+                    (<div key={idx} className={styles.item}
                           onClick={() => onEnter(item)}
                           onMouseEnter={() => setHighlightResult(idx)}
                           style={{
-                              backgroundColor: highlightResult === idx && 'white'
+                              backgroundColor: highlightResult === idx && 'white',
+                              ...item.style
                           }}
                     >
                         {
