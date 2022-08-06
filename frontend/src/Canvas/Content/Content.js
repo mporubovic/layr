@@ -68,12 +68,32 @@ export default forwardRef((props, inRef) => {
                 setY(y + dy)
         }
 
-        props.update({x: xRef.current, y: yRef.current, scale: scaleRef.current})
+        props.update({
+            x: xRef.current,
+            y: yRef.current,
+            scale: scaleRef.current,
+            local: {
+                ...content.local,
+                rect: rect
+            }
+        })
     }
 
     useEffect(() => {
         resize()
     }, [props.resizeDelta])
+
+    useEffect(() => {
+        if (contentRef) {
+            let rect = contentRef.current.getBoundingClientRect()
+            props.update({
+                local: {
+                    ...content.local,
+                    rect
+                }
+            })
+        }
+    }, [contentRef])
 
     const Component = getComponent(content.type)
 
