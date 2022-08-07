@@ -31,13 +31,13 @@ export default function Resizer(props) { // TODO: memoize?
         contentId.current = mouseInContentId
     }
     else if (!metaDown && active.current) {
-        unDim(content, contentId.current)
+        // unDim(content, contentId.current)
         active.current = false
         contentId.current = null
     }
 
     if (mouseInContentId && contentId.current && contentId.current !== mouseInContentId) {
-        unDim(content, contentId.current)
+        // unDim(content, contentId.current)
         contentId.current = mouseInContentId
     }
 

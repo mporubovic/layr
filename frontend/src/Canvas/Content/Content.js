@@ -18,6 +18,10 @@ export default function Content(props) {
     const y = content.y
     const scale = content.scale
 
+    const canvasX = useSelector(state => state.canvas.x)
+    const canvasY = useSelector(state => state.canvas.y)
+    const canvasScale = useSelector(state => state.canvas.scale)
+
     const onMouseEnter = (e) => {
         dispatch(canvasSlice.actions.setMouseInContentId(id))
     }
@@ -46,7 +50,7 @@ export default function Content(props) {
                 ref.removeEventListener('mouseleave', onMouseLeave)
             }
         }
-    }, [contentRef, x, y, scale])
+    }, [contentRef, x, y, scale, canvasX, canvasY, canvasScale])
 
     useEffect(() => {
         // (cmds) => c.local.commands = cmds
