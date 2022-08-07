@@ -2,13 +2,13 @@ import {createSlice} from "@reduxjs/toolkit";
 
 
 const initialState = {
-    id: null,
-    name: null,
-    user_id: null,
-    content: null,
-    metadata: null,
-    created_at: null,
-    updated_at: null
+    // id: null,
+    // name: null,
+    // user_id: null,
+    // content: null,
+    // metadata: null,
+    // created_at: null,
+    // updated_at: null
 }
 
 const conceptSlice = createSlice({

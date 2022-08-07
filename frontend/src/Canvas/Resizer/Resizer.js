@@ -2,9 +2,9 @@ import {useRef, useEffect} from "react";
 import styles from './Resizer.module.sass'
 import {useDispatch, useSelector} from "react-redux";
 import conceptSlice from "../../state/concept";
+import resizerSlice from "../../state/resizer";
 
 export default function Resizer(props) { // TODO: memoize?
-
     const dispatch = useDispatch()
 
     const outerPadding = 20
@@ -17,32 +17,30 @@ export default function Resizer(props) { // TODO: memoize?
     const backspaceCounter = useRef(0)
     const backspaceTimeout = useRef(null)
 
-    const active = useRef(false)
-    const contentId = useRef(null)
-
     const metaDown = useSelector(state => state.inputManager.key.Meta.down)
     const mouseInContentId = useSelector(state => state.canvas.mouseInContentId)
     const canvasScale = useSelector(state => state.canvas.scale)
+    const resizingContentId = useSelector(state => state.resizer.resizingContentId)
 
-    let content = useSelector(state => state.concept.content?.find(c => c.local.id === contentId.current))
+    useEffect(() => {
+        if (metaDown && mouseInContentId && !resizingContentId) {
+            dispatch(resizerSlice.actions.setResizingContentId(mouseInContentId))
+        }
+        else if (!metaDown && resizingContentId) {
+            // unDim(content, contentId.current)
+            dispatch(resizerSlice.actions.setResizingContentId(null))
+        }
 
-    if (metaDown && mouseInContentId && !active.current) {
-        active.current = true
-        contentId.current = mouseInContentId
-    }
-    else if (!metaDown && active.current) {
-        // unDim(content, contentId.current)
-        active.current = false
-        contentId.current = null
-    }
+        else if (mouseInContentId && resizingContentId && resizingContentId !== mouseInContentId) {
+            // unDim(content, contentId.current)
+            dispatch(resizerSlice.actions.setResizingContentId(mouseInContentId))
+        }
+    }, [metaDown, mouseInContentId, resizingContentId])
 
-    if (mouseInContentId && contentId.current && contentId.current !== mouseInContentId) {
-        // unDim(content, contentId.current)
-        contentId.current = mouseInContentId
-    }
-
-    content = useSelector(state => state.concept.content?.find(c => c.local.id === contentId.current))
+    const content = useSelector(state => state.concept.content?.find(c => c.local.id === resizingContentId))
     const contentRect = content?.local.rect
+
+
 
     // if (show) {
     //     // debugger
@@ -145,7 +143,7 @@ export default function Resizer(props) { // TODO: memoize?
                 break
         }
 
-        dispatch(conceptSlice.actions.updateContent({ id: contentId.current, data: next }))
+        dispatch(conceptSlice.actions.updateContent({ id: resizingContentId, data: next }))
     }
 
     function onPointerDown() {
@@ -171,12 +169,12 @@ export default function Resizer(props) { // TODO: memoize?
             if (backspaceCounter.current === 2) {
                 // deleteContent(currentResizingContentIdRef.current || mouseInRef.current)
                 backspaceCounter.current = 0
-                unDim(content, contentId.current)
+                unDim(content, resizingContentId)
             }
             else {
                 backspaceTimeout.current = setTimeout(() => {
                     backspaceCounter.current = 0
-                    unDim(content, contentId.current)
+                    unDim(content, resizingContentId)
                 }, 1000)
 
                 dim()
@@ -187,7 +185,7 @@ export default function Resizer(props) { // TODO: memoize?
 
     function dim() {
         dispatch(conceptSlice.actions.updateContent({
-            id: contentId.current,
+            id: resizingContentId,
             data: {
                 local: {
                     ...content.local,
@@ -227,11 +225,7 @@ export default function Resizer(props) { // TODO: memoize?
         }
     }, [content])
 
-
-
-
-
-    if (!active.current) return null
+    if (!resizingContentId) return null
 
     return (
         <div className={styles.resizer} ref={div}

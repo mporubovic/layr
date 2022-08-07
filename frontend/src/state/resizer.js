@@ -2,9 +2,7 @@ import {createSlice} from "@reduxjs/toolkit";
 
 
 const initialState = {
-    // contentId: null,
-    // show: false,
-    resizing: false
+    resizingContentId: null
 }
 
 const resizerSlice = createSlice({

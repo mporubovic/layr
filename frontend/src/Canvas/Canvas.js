@@ -30,10 +30,9 @@ export default function Canvas() {
 
     const div = useRef(null)
 
-    const [x, setX, xRef] = useStateRef(0)
-    const [y, setY, yRef] = useStateRef(0)
-    const [scale, setScale, scaleRef] = useStateRef(1)
-
+    const x = useSelector(state => state.canvas.x)
+    const y = useSelector(state => state.canvas.y)
+    const scale = useSelector(state => state.canvas.scale)
 
     const currentContentIsFocusedRef = useRef(false)
 
@@ -46,7 +45,10 @@ export default function Canvas() {
     const [consoleCommands, setConsoleCommands] = useState([])
     const mousePosition = useRef({x: window.innerWidth/2, y: window.innerHeight/2})
 
-    const [concept, setConcept, conceptRef] = useStateRef(null)
+    // const [concept, setConcept, conceptRef] = useStateRef(null)
+
+    const concept = useSelector(state => state.concept)
+
     const backendTimeout = useRef(null)
 
     const clickTimeStamp = useRef(0)
@@ -65,7 +67,7 @@ export default function Canvas() {
         if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current && !currentContentIsFocusedRef.current) {
             e.preventDefault()
             if (e.key === "/") {
-                let content = conceptRef.current?.content.find(c => c.local.id === mouseInRef.current)
+                let content = concept.content.find(c => c.local.id === mouseInRef.current)
 
                 if (content && content.local.commands) setConsoleCommands(content.local.commands)
                 else setConsoleCommands(canvasCommands)
@@ -90,10 +92,6 @@ export default function Canvas() {
         if (e.key === "Meta") dispatch(inputManager.actions.setMetaDown(false))
     }
 
-    function contentFromRef(ref) {
-        return conceptRef.current.content.find(c => c.local.ref === ref)
-    }
-
     function onWheel(e) {
         e.preventDefault()
 
@@ -109,12 +107,12 @@ export default function Canvas() {
         let delta = -e.deltaY * (zoomStep)
         let zoomDirection = delta < 0 ? 'out' : 'in'
 
-        if (scaleRef.current + delta > scaleMax) delta = scaleMax - scaleRef.current
-        else if (scaleRef.current + delta < scaleMin) delta = scaleMin - scaleRef.current
+        if (scale + delta > scaleMax) delta = scaleMax - scale
+        else if (scale + delta < scaleMin) delta = scaleMin - scale
 
         let rect = div.current.getBoundingClientRect()
-        let dx = ((rect.x + rect.width / 2 - e.clientX) / scaleRef.current) * delta
-        let dy = ((rect.y + rect.height / 2 - e.clientY) / scaleRef.current) * delta
+        let dx = ((rect.x + rect.width / 2 - e.clientX) / scale) * delta
+        let dy = ((rect.y + rect.height / 2 - e.clientY) / scale) * delta
 
         modifyScale(delta)
         modifyXY(dx, dy)
@@ -125,25 +123,21 @@ export default function Canvas() {
     }
 
     function modifyScale(delta) {
-        setScale(scaleRef.current + delta)
-        dispatch(canvasSlice.actions.setDimensions({ scale: scaleRef.current + delta }))
+        dispatch(canvasSlice.actions.setDimensions({ scale: scale + delta }))
     }
 
-    function modifyXY(x, y) {
-        setX(xRef.current + x)
-        setY(yRef.current + y)
-        dispatch(canvasSlice.actions.setDimensions({ x: xRef.current + x, y: yRef.current + y }))
+    function modifyXY(dx, dy) {
+        dispatch(canvasSlice.actions.setDimensions({ x: x + dx, y: y + dy }))
     }
 
     const onMouseMove = (e) => {
         mousePosition.current = {x: e.clientX, y: e.clientY}
-        // backspaceCounter.current = 0
     }
 
-    const mouseToCanvasPosition = (x, y) => {
+    const mouseToCanvasPosition = (mx, my) => {
         return {
-            x: -(window.innerWidth/2 - x + xRef.current)/scaleRef.current,
-            y: -(window.innerHeight/2 - y + yRef.current)/scaleRef.current
+            x: -(window.innerWidth/2 - mx + x)/scale,
+            y: -(window.innerHeight/2 - my + y)/scale
         }
     }
 
@@ -160,20 +154,22 @@ export default function Canvas() {
                         ? (sizeMultiplier * window.innerWidth) / rect.width
                         : (sizeMultiplier * window.innerHeight) / rect.height
 
-        let nextScale = scaleRef.current * dScale
+        let nextScale = scale * dScale
 
-        let nextx = (window.innerWidth/2 + xRef.current - (rect.x + rect.width/2))*dScale
-        let nexty = (window.innerHeight/2 + yRef.current - (rect.y + rect.height/2))*dScale
+        let nextx = (window.innerWidth/2 + x - (rect.x + rect.width/2))*dScale
+        let nexty = (window.innerHeight/2 + y - (rect.y + rect.height/2))*dScale
 
-        const dimensions = {x: xRef.current, y: yRef.current, scale: scaleRef.current}
+        const dimensions = { x, y, scale }
 
         let tween = new TWEEN.Tween(dimensions)
                                 .to({x: nextx, y: nexty, scale: nextScale}, animationTime)
                                 .easing(TWEEN.Easing.Quadratic.Out)
                                 .onUpdate(() => {
-                                    setX(dimensions.x)
-                                    setY(dimensions.y)
-                                    setScale(dimensions.scale)
+                                    dispatch(canvasSlice.actions.setDimensions({
+                                        x: dimensions.x,
+                                        y: dimensions.y,
+                                        scale: dimensions.scale
+                                    }))
                                 })
         tween.start()
     }
@@ -184,7 +180,7 @@ export default function Canvas() {
         if (delta < 200) { // double-click
             let contentDiv = e.composedPath().find(el => el.className === 'content')
             if (contentDiv) {
-                let c = conceptRef.current.content.find(c => c.local.ref === contentDiv)
+                let c = concept.content.find(c => c.local.ref === contentDiv)
                 if (c) centerContentOnScreen(c)
             }
         }
@@ -230,6 +226,13 @@ export default function Canvas() {
 
     useEffect(() => {
         window.addEventListener("wheel", onWheel, {passive: false})
+
+        return () => {
+            window.removeEventListener("wheel", onWheel)
+        }
+    }, [x, y, scale])
+
+    useEffect(() => {
         window.addEventListener("keydown", onKeyDown)
         window.addEventListener("keyup", onKeyUp)
         window.addEventListener("mousemove", onMouseMove)
@@ -237,17 +240,13 @@ export default function Canvas() {
         window.addEventListener("dragover", onDragOver)
         window.addEventListener("click", onClick)
 
-
         return () => {
-            window.removeEventListener("wheel", onWheel)
             window.removeEventListener("keydown", onKeyDown)
             window.removeEventListener("keyup", onKeyUp)
             window.removeEventListener("mousemove", onMouseMove)
             window.removeEventListener("drop", onDrop)
             window.removeEventListener("dragover", onDragOver)
             window.removeEventListener("click", onClick)
-
-
         }
     }, [concept])
 
@@ -348,10 +347,10 @@ export default function Canvas() {
 
         }
 
-        let c = _.cloneDeep(conceptRef.current)
+        let c = _.cloneDeep(concept)
         c.content.push(content)
 
-        setConcept(c)
+        dispatch(conceptSlice.actions.setConcept(c))
         postUpdatedConcept(c)
 
         return content
@@ -359,8 +358,8 @@ export default function Canvas() {
     }
 
     function deleteContent(id) {
-        let c = _.cloneDeep(conceptRef.current)
-        let idx = conceptRef.current.content.findIndex(c => c.local.id === id)
+        let c = _.cloneDeep(concept)
+        let idx = concept.content.findIndex(c => c.local.id === id)
 
         if ([contentTypes.IMAGE, contentTypes.VIDEO].includes(c.content[idx].type)) {
             Frontend.request(Backend.Endpoint.CONTENT, Backend.Operation.DELETE, { content: {src: c.content[idx].src} })
@@ -369,12 +368,12 @@ export default function Canvas() {
         c.content.splice(idx, 1)
 
         // setCurrentResizingContentId(null)
-        setConcept(c)
+        dispatch(conceptSlice.actions.setConcept(c))
 
         postUpdatedConcept(c)
     }
 
-    function postUpdatedConcept(_c = conceptRef.current) {
+    function postUpdatedConcept(_c = concept) {
         if (!_c) return
         if (backendTimeout.current) clearTimeout(backendTimeout.current)
 
@@ -386,11 +385,7 @@ export default function Canvas() {
             })
 
             c.metadata = {
-                canvas: {
-                    x: xRef.current,
-                    y: yRef.current,
-                    scale: scaleRef.current
-                }
+                canvas: { x, y, scale }
             }
 
             c.content = JSON.stringify(c.content)
@@ -415,9 +410,6 @@ export default function Canvas() {
             })
 
             if (_concept.metadata) {
-                setX(_concept.metadata.canvas.x)
-                setY(_concept.metadata.canvas.y)
-                setScale(_concept.metadata.canvas.scale)
                 dispatch(canvasSlice.actions.setDimensions({
                     x: _concept.metadata.canvas.x,
                     y: _concept.metadata.canvas.y,
@@ -425,15 +417,14 @@ export default function Canvas() {
                 }))
             }
 
-            setConcept(_concept)
             dispatch(conceptSlice.actions.setConcept(_concept))
         })
     }
 
     function onContentUpdate(id, data) {
-        let idx = conceptRef.current.content.findIndex(c => c.local.id === id)
-        conceptRef.current.content[idx] = {...conceptRef.current.content[idx], ...data}
-        postUpdatedConcept(conceptRef.current)
+        let idx = concept.content.findIndex(c => c.local.id === id)
+        concept.content[idx] = {...concept.content[idx], ...data}
+        postUpdatedConcept(concept)
     }
 
     function createConcept(data) {
@@ -444,7 +435,7 @@ export default function Canvas() {
 
         Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.CREATE, {concept: c}).then((r) => {
             r.data.data.content = JSON.parse(r.data.data.content)
-            setConcept(r.data.data)
+            dispatch(conceptSlice.actions.setConcept(r.data.data))
             setShowConsole(false)
         })
 
@@ -460,10 +451,9 @@ export default function Canvas() {
             }}>
 
                 {
-                    concept && concept.content.map((c) => (
+                    concept.content && concept.content.map((c) => (
                         <Content key={c.local.id}
                                  contentId={c.local.id}
-                                 lock={metaDown}
                                  update={(data) => onContentUpdate(c.local.id, data)}
                             // registerCommands={(cmds) => c.local.commands = cmds}
                                  registerCommands={() => null}

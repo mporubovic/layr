@@ -11,19 +11,25 @@ export default function Content(props) {
 
     const contentRef = useRef()
 
+    const metaDown = useSelector(state => state.inputManager.key.Meta.down)
+
     const id = props.contentId
     const content = useSelector(state => state.concept.content.find(c => c.local.id === id))
-
-    const x = content.x
-    const y = content.y
-    const scale = content.scale
 
     const canvasX = useSelector(state => state.canvas.x)
     const canvasY = useSelector(state => state.canvas.y)
     const canvasScale = useSelector(state => state.canvas.scale)
 
+    const resizerActive = useSelector(state => state.resizer.resizingContentId)
+    const isSelfResizing = resizerActive === id
+
+    const x = content.x
+    const y = content.y
+    const scale = content.scale
+
     const onMouseEnter = (e) => {
         dispatch(canvasSlice.actions.setMouseInContentId(id))
+        recalculateRect()
     }
 
     const onMouseLeave = (e) => {
@@ -31,26 +37,43 @@ export default function Content(props) {
     }
 
     useEffect(() => {
-        if (contentRef) {
-            let ref = contentRef.current
-            let rect = ref.getBoundingClientRect().toJSON()
+        let ref = contentRef.current
 
-            update({
-                local: {
-                    ...content.local,
-                    rect,
-                }
-            })
+        ref.addEventListener('mouseenter', onMouseEnter)
+        ref.addEventListener('mouseleave', onMouseLeave)
 
-            ref.addEventListener('mouseenter', onMouseEnter)
-            ref.addEventListener('mouseleave', onMouseLeave)
-
-            return () => {
-                ref.removeEventListener('mouseenter', onMouseEnter)
-                ref.removeEventListener('mouseleave', onMouseLeave)
-            }
+        return () => {
+            ref.removeEventListener('mouseenter', onMouseEnter)
+            ref.removeEventListener('mouseleave', onMouseLeave)
         }
-    }, [contentRef, x, y, scale, canvasX, canvasY, canvasScale])
+
+    }, [contentRef])
+
+    useEffect(() => {
+        if (contentRef.current) {
+            recalculateRect()
+        }
+    }, [x, y, scale])
+
+    useEffect(() => {
+
+        if (contentRef.current && isSelfResizing) {
+            recalculateRect()
+        }
+
+    }, [canvasX, canvasY, canvasScale])
+
+    function recalculateRect() {
+        let ref = contentRef.current
+        let rect = ref.getBoundingClientRect().toJSON()
+
+        update({
+            local: {
+                ...content.local,
+                rect,
+            }
+        })
+    }
 
     useEffect(() => {
         // (cmds) => c.local.commands = cmds
@@ -76,11 +99,11 @@ export default function Content(props) {
                            scale={scale}
                            style={{
                                ...props.style,
-                               ...(props.lock) && { pointerEvents: "none", userSelect: "none"},
+                               ...(metaDown) && { pointerEvents: "none", userSelect: "none"},
                                ...(content.local.dim) && { opacity: 0.5 }
                            }}
 
-                           lock={props.lock}
+                           // lock={metaDown}
                            update={update}
 
                            registerCommands={props.registerCommands}
