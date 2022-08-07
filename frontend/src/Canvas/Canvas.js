@@ -14,6 +14,11 @@ import * as Backend from "../../../backend/config.js";
 import Placeholder from "./Content/Placeholder/Placeholder";
 import {register as registerCanvasCommands, reset as resetCanvasCommands, canvasCommands} from "./canvasCommands";
 import Menu from "./Menu/Menu";
+import {useDispatch, useSelector} from "react-redux";
+import inputManager from "../state/inputManager";
+import conceptSlice from "../state/concept";
+import canvasSlice from "../state/canvas";
+
 
 export default function Canvas() {
 
@@ -21,23 +26,20 @@ export default function Canvas() {
     const scaleMin = 0.1
     const zoomStep = 1 / 100 // the higher the zoom step, the faster it zooms
 
+    const dispatch = useDispatch()
+
     const div = useRef(null)
 
     const [x, setX, xRef] = useStateRef(0)
     const [y, setY, yRef] = useStateRef(0)
     const [scale, setScale, scaleRef] = useStateRef(1)
 
-    const [currentResizingContentId, setCurrentResizingContentId, currentResizingContentIdRef] = useStateRef(null)
-    const [dimCurrentResizingContent, setDimCurrentResizingContent] = useStateRef(false)
+
     const currentContentIsFocusedRef = useRef(false)
 
-    const [metaDown, setMetaDown, metaDownRef] = useStateRef(false)
+    const metaDown = useSelector(state => state.inputManager.key.Meta.down)
+
     const [mouseIn, setMouseIn, mouseInRef] = useStateRef(null)
-    const [resizeDelta, setResizeDelta] = useState(null)
-    const showResizerRef = useRef(false)
-    showResizerRef.current = (metaDown && (mouseIn || currentResizingContentId))
-    const showResizerOnContentIdRef = useRef(null)
-    showResizerOnContentIdRef.current = showResizerRef.current && (mouseIn || currentResizingContentId)
 
     const [showConsole, setShowConsole, showConsoleRef] = useStateRef(false)
     const [consolePrefix, setConsolePrefix] = useState()
@@ -47,8 +49,6 @@ export default function Canvas() {
     const [concept, setConcept, conceptRef] = useStateRef(null)
     const backendTimeout = useRef(null)
 
-    const backspaceCounter = useRef(0)
-    const backspaceTimeout = useRef(null)
     const clickTimeStamp = useRef(0)
 
     const [placeholders, setPlaceholders] = useState([])
@@ -60,7 +60,8 @@ export default function Canvas() {
     const Program = program && program.component
 
     const onKeyDown = (e) => {
-        e.key === "Meta" && !currentContentIsFocusedRef.current && setMetaDown(true)
+        if (e.key === "Meta") dispatch(inputManager.actions.setMetaDown(true))
+
         if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current && !currentContentIsFocusedRef.current) {
             e.preventDefault()
             if (e.key === "/") {
@@ -82,53 +83,16 @@ export default function Canvas() {
 
 
         }
-        else if (e.key === "Backspace" && showResizerRef.current) {
-            backspaceCounter.current++
 
-            if (backspaceCounter.current === 2) {
-                deleteContent(currentResizingContentIdRef.current || mouseInRef.current)
-                backspaceCounter.current = 0
-                unDim()
-            }
-            else {
-                backspaceTimeout.current = setTimeout(() => {
-                    backspaceCounter.current = 0
-                    setDimCurrentResizingContent(false)
-                }, 1000)
-
-                setDimCurrentResizingContent(true)
-            }
-        }
-        else {
-            backspaceCounter.current = 0
-            unDim()
-        }
-        // e.key === "Escape" && showConsoleRef && setShowConsole(false)
-    }
-
-    const unDim = () => {
-        clearTimeout(backspaceTimeout.current)
-        setDimCurrentResizingContent(false)
     }
 
     const onKeyUp = (e) => {
-        if (e.key === "Meta") {
-            setMetaDown(false)
-            unDim()
-        }
-        else {
-            backspaceCounter.current = 0
-        }
+        if (e.key === "Meta") dispatch(inputManager.actions.setMetaDown(false))
     }
 
     function contentFromRef(ref) {
         return conceptRef.current.content.find(c => c.local.ref === ref)
     }
-
-    function findContentInPath(path) {
-        return contentFromRef(path.find(el => el.className === 'content'))
-    }
-
 
     function onWheel(e) {
         e.preventDefault()
@@ -162,24 +126,18 @@ export default function Canvas() {
 
     function modifyScale(delta) {
         setScale(scaleRef.current + delta)
+        dispatch(canvasSlice.actions.setDimensions({ scale: scaleRef.current + delta }))
     }
 
     function modifyXY(x, y) {
         setX(xRef.current + x)
         setY(yRef.current + y)
-    }
-
-    const onMouseEnter = (c) => {
-        setMouseIn(c.local.id)
-    }
-    const onMouseLeave = () => {
-        if (metaDownRef.current && (mouseInRef.current || currentResizingContentIdRef.current)) return
-        setMouseIn(null)
+        dispatch(canvasSlice.actions.setDimensions({ x: xRef.current + x, y: yRef.current + y }))
     }
 
     const onMouseMove = (e) => {
         mousePosition.current = {x: e.clientX, y: e.clientY}
-        backspaceCounter.current = 0
+        // backspaceCounter.current = 0
     }
 
     const mouseToCanvasPosition = (x, y) => {
@@ -279,10 +237,7 @@ export default function Canvas() {
         window.addEventListener("dragover", onDragOver)
         window.addEventListener("click", onClick)
 
-        concept && concept.content.forEach(c => {
-            c.local.ref?.addEventListener("mouseenter", () => onMouseEnter(c))
-            c.local.ref?.addEventListener("mouseleave", onMouseLeave)
-        })
+
         return () => {
             window.removeEventListener("wheel", onWheel)
             window.removeEventListener("keydown", onKeyDown)
@@ -292,10 +247,7 @@ export default function Canvas() {
             window.removeEventListener("dragover", onDragOver)
             window.removeEventListener("click", onClick)
 
-            concept && concept.content.forEach(c => {
-                c.local.ref?.removeEventListener("mouseenter", () => onMouseEnter(c))
-                c.local.ref?.removeEventListener("mouseleave", onMouseLeave)
-            })
+
         }
     }, [concept])
 
@@ -319,24 +271,13 @@ export default function Canvas() {
             // setShowConsole(true)
         })
 
+        openConcept(3)
+
         return () => {
             resetCanvasCommands()
         }
     }, [])
 
-
-    function startResize() {
-        setCurrentResizingContentId(mouseInRef.current)
-    }
-
-    function onResize(dx, dy, corner) {
-        setResizeDelta({dx, dy, corner})
-    }
-
-    function stopResize() {
-        setCurrentResizingContentId(null)
-        setResizeDelta(null)
-    }
 
     function requestContentCreation(type, data) {
         setShowConsole(false)
@@ -402,7 +343,6 @@ export default function Canvas() {
             scale: data?.scale ?? 1,
 
             local: {
-                ref: null,
                 id: uuidv4(),
             },
 
@@ -428,9 +368,7 @@ export default function Canvas() {
 
         c.content.splice(idx, 1)
 
-        setCurrentResizingContentId(null)
-        setResizeDelta(null)
-        setMouseIn(false)
+        // setCurrentResizingContentId(null)
         setConcept(c)
 
         postUpdatedConcept(c)
@@ -473,7 +411,6 @@ export default function Canvas() {
             _concept.content.forEach(c => {
                 c.local = {
                     id: uuidv4(),
-                    ref: null,
                 }
             })
 
@@ -481,9 +418,15 @@ export default function Canvas() {
                 setX(_concept.metadata.canvas.x)
                 setY(_concept.metadata.canvas.y)
                 setScale(_concept.metadata.canvas.scale)
+                dispatch(canvasSlice.actions.setDimensions({
+                    x: _concept.metadata.canvas.x,
+                    y: _concept.metadata.canvas.y,
+                    scale: _concept.metadata.canvas.scale
+                }))
             }
 
             setConcept(_concept)
+            dispatch(conceptSlice.actions.setConcept(_concept))
         })
     }
 
@@ -518,14 +461,12 @@ export default function Canvas() {
 
                 {
                     concept && concept.content.map((c) => (
-                        <Content key={c.local.id} ref={(r) => c.local.ref = r}
-                                 content={c}
+                        <Content key={c.local.id}
+                                 contentId={c.local.id}
                                  lock={metaDown}
-                                 canvasScale={scale}
-                                 resizeDelta={currentResizingContentId === c.local.id && resizeDelta}
                                  update={(data) => onContentUpdate(c.local.id, data)}
-                                 style={{opacity: showResizerOnContentIdRef.current === c.local.id && dimCurrentResizingContent && 0.5}}
-                                 registerCommands={(cmds) => c.local.commands = cmds}
+                            // registerCommands={(cmds) => c.local.commands = cmds}
+                                 registerCommands={() => null}
                                  setMenuItems={setMenuItems}
                                  onFocus={onContentFocus}
                                  onBlur={onContentBlur}
@@ -546,16 +487,7 @@ export default function Canvas() {
 
             </div>
 
-            {
-                showResizerRef.current &&
-                (<Resizer
-                    contentRef={concept.content.find(c => c.local.id === (mouseIn || currentResizingContentId)).local.ref}
-                    onMouseLeave={() => setMouseIn(null)}
-                    pointerMove={onResize}
-                    pointerUp={stopResize}
-                    pointerDown={startResize}
-                />)
-            }
+            <Resizer />
 
 
             {

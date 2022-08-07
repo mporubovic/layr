@@ -1,7 +1,11 @@
 import {useRef, useEffect} from "react";
 import styles from './Resizer.module.sass'
+import {useDispatch, useSelector} from "react-redux";
+import conceptSlice from "../../state/concept";
 
-export default function Resizer(props) {
+export default function Resizer(props) { // TODO: memoize?
+
+    const dispatch = useDispatch()
 
     const outerPadding = 20
     const innerPadding = 5
@@ -9,111 +13,246 @@ export default function Resizer(props) {
     const pointerDownRef = useRef(false)
     const cornerRef = useRef(null)
     const div = useRef()
-    const resizing = pointerDownRef.current
 
-    const contentRect = props.contentRef.getBoundingClientRect()
+    const backspaceCounter = useRef(0)
+    const backspaceTimeout = useRef(null)
 
-    const style =
-        props.relative
-        ?
-        {
-            transform: `translate(${0 - (outerPadding + innerPadding)}px, ${0 - (outerPadding + innerPadding)}px)`,
-            height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
-            width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
-        }
-        :
-        {
-            transform: `translate(${contentRect.x - (outerPadding + innerPadding)}px, ${contentRect.y - (outerPadding + innerPadding)}px)`,
-            height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
-            width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
-        }
+    const active = useRef(false)
+    const contentId = useRef(null)
+
+    const metaDown = useSelector(state => state.inputManager.key.Meta.down)
+    const mouseInContentId = useSelector(state => state.canvas.mouseInContentId)
+    const canvasScale = useSelector(state => state.canvas.scale)
+
+    let content = useSelector(state => state.concept.content?.find(c => c.local.id === contentId.current))
+
+    if (metaDown && mouseInContentId && !active.current) {
+        active.current = true
+        contentId.current = mouseInContentId
+    }
+    else if (!metaDown && active.current) {
+        unDim(content, contentId.current)
+        active.current = false
+        contentId.current = null
+    }
+
+    if (mouseInContentId && contentId.current && contentId.current !== mouseInContentId) {
+        unDim(content, contentId.current)
+        contentId.current = mouseInContentId
+    }
+
+    content = useSelector(state => state.concept.content?.find(c => c.local.id === contentId.current))
+    const contentRect = content?.local.rect
+
+    // if (show) {
+    //     // debugger
+    //
+    //     const contentRect = content.local.rect
+    //
+    //     style =
+    //         props.relative
+    //         ?
+    //         {
+    //             transform: `translate(${0 - (outerPadding + innerPadding)}px, ${0 - (outerPadding + innerPadding)}px)`,
+    //             height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
+    //             width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
+    //         }
+    //         :
+    //         {
+    //             transform: `translate(${contentRect.x - (outerPadding + innerPadding)}px, ${contentRect.y - (outerPadding + innerPadding)}px)`,
+    //             height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
+    //             width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
+    //         }
+    //
+    // }
+
 
     function corner(c) {
-        if (resizing) return
 
         cornerRef.current = c
         let cursor
 
         switch (c) {
-            case "tl":
-            case "br":
-                cursor = "nwse-resize"
+            case 'tl':
+            case 'br':
+                cursor = 'nwse-resize'
                 break
-            case "tr":
-            case "bl":
-                cursor = "nesw-resize"
+            case 'tr':
+            case 'bl':
+                cursor = 'nesw-resize'
                 break
-            case "t":
-            case "b":
-                cursor = "ns-resize"
+            case 't':
+            case 'b':
+                cursor = 'ns-resize'
                 break
-            case "l":
-            case "r":
-                cursor = "ew-resize"
+            case 'l':
+            case 'r':
+                cursor = 'ew-resize'
                 break
-            case "m":
-                cursor = "move"
+            case 'm':
+                cursor = 'move'
                 break
             default:
-                console.warn("Wrong corner", c)
+                console.warn('Wrong corner', c)
         }
 
         document.body.style.cursor = cursor
 
     }
 
+    function resize(movX, movY) {
+
+        let x = content.x
+        let y = content.y
+        let dx = (movX/canvasScale)
+        let dy = (movY/canvasScale)
+
+        let rect = contentRect
+        let aspect = rect.width/rect.height
+        let contentScale = content.scale
+
+        let next = {}
+
+        // debugger
+
+        switch (cornerRef.current) {
+            case 'br':
+                next.scale = contentScale + (movY)*contentScale/rect.height
+                break
+
+            case 'tr':
+                next.scale = contentScale - (movY)*contentScale/rect.height
+                next.y = y + dy
+                break
+
+            case 'tl':
+                next.x = x + dy
+                next.y = y + dy
+                break
+
+            case 'bl':
+                next.scale = contentScale + (movY)*contentScale/rect.height
+                next.x = x - ((movY)*contentScale/rect.height)*rect.width
+                break
+
+            case 't':
+            case 'l':
+            case 'r':
+            case 'b':
+            case 'm':
+                next.x = x + dx
+                next.y = y + dy
+                break
+        }
+
+        dispatch(conceptSlice.actions.updateContent({ id: contentId.current, data: next }))
+    }
+
     function onPointerDown() {
         pointerDownRef.current = true
-        props.pointerDown()
     }
 
     function onPointerUp() {
         pointerDownRef.current = false
         cornerRef.current = null
-        document.body.style.cursor = ""
-        props.pointerUp()
+        document.body.style.cursor = 'auto'
     }
 
     function onPointerMove(e) {
-        if (pointerDownRef.current) {
-            props.pointerMove(e.movementX, e.movementY, cornerRef.current)
+        if (content && pointerDownRef.current) {
+            resize(e.movementX, e.movementY)
         }
+    }
 
+    function onKeyDown(e) {
+        if (e.key === 'Backspace') {
+            backspaceCounter.current++
+
+            if (backspaceCounter.current === 2) {
+                // deleteContent(currentResizingContentIdRef.current || mouseInRef.current)
+                backspaceCounter.current = 0
+                unDim(content, contentId.current)
+            }
+            else {
+                backspaceTimeout.current = setTimeout(() => {
+                    backspaceCounter.current = 0
+                    unDim(content, contentId.current)
+                }, 1000)
+
+                dim()
+
+            }
+        }
+    }
+
+    function dim() {
+        dispatch(conceptSlice.actions.updateContent({
+            id: contentId.current,
+            data: {
+                local: {
+                    ...content.local,
+                    dim: true
+                }
+            }
+        }))
+    }
+
+    function unDim(content, id) {
+        backspaceCounter.current = 0
+        clearTimeout(backspaceTimeout.current)
+
+        dispatch(conceptSlice.actions.updateContent({ // TODO: throws a bad state call, but works
+            id,
+            data: {
+                local: {
+                    ...content.local,
+                    dim: false
+                }
+            }
+        }))
     }
 
     useEffect(() => {
-        window.addEventListener("pointermove", onPointerMove)
-        div.current.addEventListener("pointerdown", onPointerDown)
-        window.addEventListener("pointerup", onPointerUp)
+        window.addEventListener('pointermove', onPointerMove)
+        window.addEventListener('pointerdown', onPointerDown)
+        window.addEventListener('pointerup', onPointerUp)
+        window.addEventListener('keydown', onKeyDown)
 
         return () => {
-            // console.log("cursor set to null")
-            document.body.style.cursor = ""
-            window.removeEventListener("pointermove", onPointerMove)
-            window.removeEventListener("pointerup", onPointerUp)
+            window.removeEventListener('pointermove', onPointerMove)
+            window.removeEventListener('pointerup', onPointerUp)
+            window.removeEventListener('pointerdown', onPointerDown)
+            window.removeEventListener('keydown', onKeyDown)
+
         }
-    }, [])
+    }, [content])
 
-    const lineThickness = Math.round(1.5 * (1/props.scale))
 
+
+
+
+    if (!active.current) return null
 
     return (
         <div className={styles.resizer} ref={div}
-             style={style}
-             onMouseLeave={props.onMouseLeave}
+             style={{
+                 transform: `translate(${contentRect.x - (outerPadding + innerPadding)}px, ${contentRect.y - (outerPadding + innerPadding)}px)`,
+                 height: contentRect.height + outerPadding * 2 + innerPadding * 2 + 'px',
+                 width: contentRect.width + outerPadding * 2 + innerPadding * 2 + 'px',
+             }}
         >
 
-            <div onMouseEnter={() => corner("tl")} />
-            <div onMouseEnter={() => corner("t")} />
-            <div onMouseEnter={() => corner("tr")} />
+            <div onMouseEnter={() => corner('tl')} />
+            <div onMouseEnter={() => corner('t')} />
+            <div onMouseEnter={() => corner('tr')} />
 
-            <div onMouseEnter={() => corner("l")} />
-            <div onMouseEnter={() => corner("m")} />
-            <div onMouseEnter={() => corner("r")} />
+            <div onMouseEnter={() => corner('l')} />
+            <div onMouseEnter={() => corner('m')} />
+            <div onMouseEnter={() => corner('r')} />
 
-            <div onMouseEnter={() => corner("bl")} />
-            <div onMouseEnter={() => corner("b")} />
-            <div onMouseEnter={() => corner("br")} />
+            <div onMouseEnter={() => corner('bl')} />
+            <div onMouseEnter={() => corner('b')} />
+            <div onMouseEnter={() => corner('br')} />
 
             <div className={styles.tlCorner} />
             <div className={styles.trCorner} />
