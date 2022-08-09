@@ -7,7 +7,7 @@ const types = {
     YOUTUBE: 'youtube',
 }
 
-export default {...types}
+export default types
 
 const getComponentFileName = (content) => {
     let _ = types[content.toUpperCase()]

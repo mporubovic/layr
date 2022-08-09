@@ -12,7 +12,7 @@ import TWEEN from "@tweenjs/tween.js";
 import Frontend from "../frontend";
 import * as Backend from "../../../backend/config.js";
 import Placeholder from "./Content/Placeholder/Placeholder";
-import {register as registerCanvasCommands, reset as resetCanvasCommands, canvasCommands} from "./canvasCommands";
+import {register as registerCanvasCommands, reset as resetCanvasCommands, commands} from "./Console/commands";
 import Menu from "./Menu/Menu";
 import {useDispatch, useSelector} from "react-redux";
 import inputManager from "../state/inputManager";
@@ -34,10 +34,6 @@ export default function Canvas() {
     const y = useSelector(state => state.canvas.y)
     const scale = useSelector(state => state.canvas.scale)
 
-    const currentContentIsFocusedRef = useRef(false)
-
-    const metaDown = useSelector(state => state.inputManager.key.Meta.down)
-
     const [mouseIn, setMouseIn, mouseInRef] = useStateRef(null)
 
     const [showConsole, setShowConsole, showConsoleRef] = useStateRef(false)
@@ -45,11 +41,7 @@ export default function Canvas() {
     const [consoleCommands, setConsoleCommands] = useState([])
     const mousePosition = useRef({x: window.innerWidth/2, y: window.innerHeight/2})
 
-    // const [concept, setConcept, conceptRef] = useStateRef(null)
-
     const concept = useSelector(state => state.concept)
-
-    const backendTimeout = useRef(null)
 
     const clickTimeStamp = useRef(0)
 
@@ -64,28 +56,13 @@ export default function Canvas() {
     const onKeyDown = (e) => {
         if (e.key === "Meta") dispatch(inputManager.actions.setMetaDown(true))
 
-        if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current && !currentContentIsFocusedRef.current) {
-            e.preventDefault()
+        if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current) {
             if (e.key === "/") {
-                let content = concept.content.find(c => c.local.id === mouseInRef.current)
-
-                if (content && content.local.commands) setConsoleCommands(content.local.commands)
-                else setConsoleCommands(canvasCommands)
-
-                setConsolePrefix(e.key)
-                setShowConsole(true)
             }
             else {
-                retrieveConcepts().then(c => {
-                    setConsoleCommands(c)
-                    setConsolePrefix(e.key)
-                    setShowConsole(true)
-                })
+
             }
-
-
         }
-
     }
 
     const onKeyUp = (e) => {
@@ -100,7 +77,11 @@ export default function Canvas() {
         if (gesture === "zoom") onZoom(e)
         else if (gesture === "pan") onPan(e)
 
-        postUpdatedConcept()
+        dispatch(conceptSlice.actions.updateConceptMetaData({
+            canvas: {
+                x, y, scale
+            }
+        }))
     }
 
     function onZoom(e) {
@@ -132,6 +113,7 @@ export default function Canvas() {
 
     const onMouseMove = (e) => {
         mousePosition.current = {x: e.clientX, y: e.clientY}
+        dispatch(inputManager.actions.setMousePosition({ x: e.clientX, y: e.clientY }))
     }
 
     const mouseToCanvasPosition = (mx, my) => {
@@ -186,14 +168,6 @@ export default function Canvas() {
         }
 
         clickTimeStamp.current = e.timeStamp
-    }
-
-    const onContentFocus = (id) => {
-        currentContentIsFocusedRef.current = true
-    }
-
-    const onContentBlur = (id) => {
-        currentContentIsFocusedRef.current = false
     }
 
     const onDrop = (e) => {
@@ -261,15 +235,6 @@ export default function Canvas() {
             openProgram: openProgram
         })
 
-        retrieveConcepts().then(c => {
-            // setConsolePrefix("\\")
-            // setConsoleCommands(c)
-            // setConsolePrefix("/")
-            // setConsoleCommands(canvasCommands)
-            //
-            // setShowConsole(true)
-        })
-
         openConcept(3)
 
         return () => {
@@ -302,32 +267,10 @@ export default function Canvas() {
                 let ctnt = createContent(type, _data)
 
                 return (__data) => {
-                    onContentUpdate(ctnt.local.id, __data)
+                    // onContentUpdate(ctnt.local.id, __data)
                 }
             })
         }
-    }
-
-    function retrieveConcepts() {
-        return Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.LIST).then((r) => {
-            let concepts = r.data.data
-            let commands = []
-
-            concepts.sort((a, b) => new Date(a['updated_at']) > new Date(b['updated_at']) ? -1 : 1)
-
-            concepts.forEach(c => {
-                commands.push({
-                    name: c.name,
-                    displayName: c.name,
-                    icon: require('./icons/cloud.svg').default,
-                    callback: () => openConcept(c.id),
-                    prefix: '\\'
-                })
-            })
-
-            return commands
-
-        }).catch(console.error)
     }
 
     function createContent(type, data, position) {
@@ -351,7 +294,7 @@ export default function Canvas() {
         c.content.push(content)
 
         dispatch(conceptSlice.actions.setConcept(c))
-        postUpdatedConcept(c)
+        // postUpdatedConcept(c)
 
         return content
 
@@ -370,32 +313,7 @@ export default function Canvas() {
         // setCurrentResizingContentId(null)
         dispatch(conceptSlice.actions.setConcept(c))
 
-        postUpdatedConcept(c)
     }
-
-    function postUpdatedConcept(_c = concept) {
-        if (!_c) return
-        if (backendTimeout.current) clearTimeout(backendTimeout.current)
-
-        backendTimeout.current = setTimeout(() => {
-            let c = _.cloneDeep(_c)
-
-            c.content.forEach(__c => {
-                delete __c.local
-            })
-
-            c.metadata = {
-                canvas: { x, y, scale }
-            }
-
-            c.content = JSON.stringify(c.content)
-            c.metadata = JSON.stringify(c.metadata)
-            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: c})
-        }, 1000)
-
-    }
-
-
 
     function openConcept(id) {
         setShowConsole(false)
@@ -419,12 +337,6 @@ export default function Canvas() {
 
             dispatch(conceptSlice.actions.setConcept(_concept))
         })
-    }
-
-    function onContentUpdate(id, data) {
-        let idx = concept.content.findIndex(c => c.local.id === id)
-        concept.content[idx] = {...concept.content[idx], ...data}
-        postUpdatedConcept(concept)
     }
 
     function createConcept(data) {
@@ -454,12 +366,9 @@ export default function Canvas() {
                     concept.content && concept.content.map((c) => (
                         <Content key={c.local.id}
                                  contentId={c.local.id}
-                                 update={(data) => onContentUpdate(c.local.id, data)}
                             // registerCommands={(cmds) => c.local.commands = cmds}
                                  registerCommands={() => null}
                                  setMenuItems={setMenuItems}
-                                 onFocus={onContentFocus}
-                                 onBlur={onContentBlur}
                         />
                         )
                     )
@@ -479,16 +388,7 @@ export default function Canvas() {
 
             <Resizer />
 
-
-            {
-                showConsole &&
-                (<Console
-                    commands={consoleCommands}
-                    label={consolePrefix === '/' ? 'COMMAND' : 'CONCEPT'}
-                    mousePosition={mousePosition.current}
-                    close={() => setShowConsole(false)}
-                />)
-            }
+            <Console />
 
             {
                 menuItems &&

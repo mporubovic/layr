@@ -15,6 +15,8 @@ const initialState = {
     },
     mouse: {
         down: false,
+        x: 0,
+        y: 0
     }
 }
 
@@ -25,13 +27,14 @@ const inputManager = createSlice({
         setMetaDown: (state, action) => {
             state.key.Meta.down = action.payload
         },
-        setMouse: (state, action) => {
-            // let { down } = action.payload
-            // state.mouse.down = down
-            state.mouse = {
-                ...state.mouse,
-                ...action.payload
-            }
+        setMouseDown: (state, action) => {
+            let { down } = action.payload
+            state.mouse.down = down
+        },
+        setMousePosition: (state, action) => {
+            let { x, y } = action.payload
+            state.mouse.x = x
+            state.mouse.y = y
         }
     }
 })

@@ -2,7 +2,7 @@ import './Content.sass'
 import {useEffect, useRef} from "react";
 import {getComponent} from './contentTypes'
 import {useDispatch, useSelector} from "react-redux";
-import conceptSlice from "../../state/concept";
+import conceptSlice, {updateContent} from "../../state/concept";
 import canvasSlice from "../../state/canvas";
 
 export default function Content(props) {
@@ -72,7 +72,7 @@ export default function Content(props) {
                 ...content.local,
                 rect,
             }
-        })
+        }, true)
     }
 
     useEffect(() => {
@@ -82,8 +82,9 @@ export default function Content(props) {
 
     }, [])
 
-    const update = (data) => {
-        dispatch(conceptSlice.actions.updateContent({ id, data }))
+    const update = (data, local = false) => {
+        // dispatch(conceptSlice.actions.updateContent({ id, data }))
+        dispatch(updateContent({ id, data, local }))
     }
 
     const Component = getComponent(content.type)

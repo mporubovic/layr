@@ -1,7 +1,7 @@
 import {useRef, useEffect} from "react";
 import styles from './Resizer.module.sass'
 import {useDispatch, useSelector} from "react-redux";
-import conceptSlice from "../../state/concept";
+import conceptSlice, {updateContent} from "../../state/concept";
 import resizerSlice from "../../state/resizer";
 
 export default function Resizer(props) { // TODO: memoize?
@@ -13,6 +13,8 @@ export default function Resizer(props) { // TODO: memoize?
     const pointerDownRef = useRef(false)
     const cornerRef = useRef(null)
     const div = useRef()
+
+    const active = useRef(false)
 
     const backspaceCounter = useRef(0)
     const backspaceTimeout = useRef(null)
@@ -28,19 +30,19 @@ export default function Resizer(props) { // TODO: memoize?
         }
         else if (!metaDown && resizingContentId) {
             // unDim(content, contentId.current)
+            // active.current = false
             dispatch(resizerSlice.actions.setResizingContentId(null))
         }
 
         else if (mouseInContentId && resizingContentId && resizingContentId !== mouseInContentId) {
             // unDim(content, contentId.current)
+            // active.current = false
             dispatch(resizerSlice.actions.setResizingContentId(mouseInContentId))
         }
     }, [metaDown, mouseInContentId, resizingContentId])
 
     const content = useSelector(state => state.concept.content?.find(c => c.local.id === resizingContentId))
     const contentRect = content?.local.rect
-
-
 
     // if (show) {
     //     // debugger
@@ -66,6 +68,7 @@ export default function Resizer(props) { // TODO: memoize?
 
 
     function corner(c) {
+        if (active.current) return
 
         cornerRef.current = c
         let cursor
@@ -99,7 +102,6 @@ export default function Resizer(props) { // TODO: memoize?
     }
 
     function resize(movX, movY) {
-
         let x = content.x
         let y = content.y
         let dx = (movX/canvasScale)
@@ -142,8 +144,7 @@ export default function Resizer(props) { // TODO: memoize?
                 next.y = y + dy
                 break
         }
-
-        dispatch(conceptSlice.actions.updateContent({ id: resizingContentId, data: next }))
+        dispatch(updateContent( { id: resizingContentId, data: next }))
     }
 
     function onPointerDown() {
@@ -152,17 +153,21 @@ export default function Resizer(props) { // TODO: memoize?
 
     function onPointerUp() {
         pointerDownRef.current = false
-        cornerRef.current = null
-        document.body.style.cursor = 'auto'
+        active.current = false
+        // cornerRef.current = null
+        // document.body.style.cursor = 'auto'
     }
 
     function onPointerMove(e) {
         if (content && pointerDownRef.current) {
+            if (!active.current) active.current = true
             resize(e.movementX, e.movementY)
         }
     }
 
     function onKeyDown(e) {
+        if (!active.current) return
+
         if (e.key === 'Backspace') {
             backspaceCounter.current++
 

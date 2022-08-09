@@ -6,20 +6,21 @@ import "ace-builds/src-noconflict/theme-solarized_dark";
 import "ace-builds/src-noconflict/mode-html";
 import "ace-builds/src-noconflict/ext-language_tools"
 import "ace-builds/webpack-resolver"
+import useStateRef from "react-usestateref";
 
 export default function Html(props) {
     const ref = useRef()
     const [editing, setEditing] = useState(false)
     const htmlRef = useRef(props.html)
 
-    const [active, setActive] = useState(false)
+    const [active, setActive, activeRef] = useStateRef(false)
 
     const onChange = (html) => {
         htmlRef.current = html
     }
 
     const onKeyDown = (e) => {
-        if (e.key === "Escape") closeEditor()
+        if (e.key === "Escape" && activeRef.current) closeEditor()
     }
 
     const closeEditor = () => {
