@@ -2,6 +2,10 @@ import {createSlice} from "@reduxjs/toolkit";
 import _ from "lodash";
 import Frontend from "../frontend";
 import * as Backend from "../../../backend/config";
+import contentTypes, {getIcon, getProcessFunction} from "../Canvas/Content/contentTypes";
+import {v4 as uuidv4} from "uuid";
+import canvasSlice from "./canvas";
+// import {state} from "./state";
 
 
 const initialState = {
@@ -54,7 +58,29 @@ const conceptSlice = createSlice({
                 })
             }
 
+        },
+        addContent: (state, action) => {
+            state.content.push(action.payload)
+            Frontend.request(
+                    Backend.Endpoint.CONCEPTS,
+                    Backend.Operation.UPDATE,
+                {concept: { id: state.id, content: JSON.stringify(state.content) }})
+        },
+        deleteContent: (state, action) => {
+            let idx = state.content.findIndex(c => c.local.id === action.payload)
+
+            if ([contentTypes.IMAGE, contentTypes.VIDEO].includes(state.content[idx].type)) {
+                Frontend.request(Backend.Endpoint.CONTENT, Backend.Operation.DELETE, { content: {src: state.content[idx].src} })
+            }
+
+            state.content.splice(idx, 1)
+
+            Frontend.request(
+                Backend.Endpoint.CONCEPTS,
+                Backend.Operation.UPDATE,
+                {concept: { id: state.id, content: JSON.stringify(state.content) }})
         }
+
     }
 })
 
@@ -82,10 +108,64 @@ export const updateContent = ({ id, data, local = false }) => {
 
             c.content = JSON.stringify(c.content)
             c.metadata = JSON.stringify(c.metadata)
-            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, {concept: c})
+            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, { concept: c})
         }, timeout)
     }
 
+}
+
+
+
+function _createContent(type, data, position) {
+    return {
+        type,
+        ...data,
+
+        x: position.x,
+        y: position.y,
+        scale: data?.scale ?? 1,
+
+        local: {
+            id: uuidv4(),
+        },
+
+    }
+}
+
+export const createContent = ({ type, data }) => {
+    return function createContentThunk(dispatch, getState) {
+        let position = getState().inputManager.mouse.canvas
+
+        let asyncContent = [contentTypes.IMAGE, contentTypes.VIDEO, contentTypes.LINK]
+
+        if (asyncContent.includes(type)) {
+
+            let placeholder = {
+                ...position,
+                icon: getIcon(type),
+                id: uuidv4()
+            }
+
+            dispatch(canvasSlice.actions.addPlaceholder(placeholder))
+
+            getProcessFunction(type)(data, (_data) => {
+                dispatch(canvasSlice.actions.removePlaceholder(placeholder.id))
+                dispatch(conceptSlice.actions.addContent(_createContent(type, _data, position)))
+
+            })
+        }
+        else {
+            getProcessFunction(type)(data, (_data) => {
+                let ctnt = _createContent(type, _data, position)
+                dispatch(conceptSlice.actions.addContent(ctnt))
+
+                return (__data) => {
+                    dispatch(updateContent({ id: ctnt.local.id, data: __data }))
+                    // onContentUpdate(ctnt.local.id, __data)
+                }
+            })
+        }
+    }
 }
 
 export default conceptSlice

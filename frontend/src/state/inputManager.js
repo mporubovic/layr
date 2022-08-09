@@ -1,12 +1,5 @@
 import {createSlice} from "@reduxjs/toolkit";
 
-const INPUT = {
-    KEY: {
-        META: 'Meta'
-    },
-
-}
-
 const initialState = {
     key: {
         Meta: {
@@ -32,12 +25,12 @@ const inputManager = createSlice({
             state.mouse.down = down
         },
         setMousePosition: (state, action) => {
-            let { x, y } = action.payload
+            let { x, y, canvas } = action.payload
             state.mouse.x = x
             state.mouse.y = y
+            state.mouse.canvas = canvas
         }
     }
 })
 
 export default inputManager
-export { INPUT }

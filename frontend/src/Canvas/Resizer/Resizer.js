@@ -29,14 +29,14 @@ export default function Resizer(props) { // TODO: memoize?
             dispatch(resizerSlice.actions.setResizingContentId(mouseInContentId))
         }
         else if (!metaDown && resizingContentId) {
-            // unDim(content, contentId.current)
-            // active.current = false
+            unDim(content, resizingContentId)
+            active.current = false
             dispatch(resizerSlice.actions.setResizingContentId(null))
         }
 
         else if (mouseInContentId && resizingContentId && resizingContentId !== mouseInContentId) {
-            // unDim(content, contentId.current)
-            // active.current = false
+            unDim(content, resizingContentId)
+            active.current = false
             dispatch(resizerSlice.actions.setResizingContentId(mouseInContentId))
         }
     }, [metaDown, mouseInContentId, resizingContentId])
@@ -166,13 +166,14 @@ export default function Resizer(props) { // TODO: memoize?
     }
 
     function onKeyDown(e) {
-        if (!active.current) return
+        if (!resizingContentId) return
 
         if (e.key === 'Backspace') {
             backspaceCounter.current++
 
             if (backspaceCounter.current === 2) {
-                // deleteContent(currentResizingContentIdRef.current || mouseInRef.current)
+                dispatch(resizerSlice.actions.setResizingContentId(null))
+                dispatch(conceptSlice.actions.deleteContent(resizingContentId))
                 backspaceCounter.current = 0
                 unDim(content, resizingContentId)
             }

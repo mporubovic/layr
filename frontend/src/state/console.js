@@ -13,12 +13,6 @@ const consoleSlice = createSlice({
     reducers: {
         setShow: (state, action) => {
             state.show = action.payload
-        },
-        setCommands: (state, action) => {
-            state.commands = action.payload
-        },
-        setTitle: (state, action) => {
-            state.title = action.payload
         }
     }
 })

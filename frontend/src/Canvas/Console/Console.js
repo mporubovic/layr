@@ -5,8 +5,8 @@ import List from "../../UI/List/List";
 import InputBox from "../../UI/InputBox/InputBox";
 import {useDispatch, useSelector} from "react-redux";
 import consoleSlice from "../../state/console";
-import {commands} from "./commands";
-import _ from "lodash";
+import {canvasCommands, clearCommands, contentCommands, register as registerCanvasCommands} from "./commands";
+import {fetchConcepts, openConcept} from "../../state/concepts";
 
 export default function Console(props) {
     const dispatch = useDispatch()
@@ -17,26 +17,57 @@ export default function Console(props) {
     }
 
     const localPosition = useRef({ x: 0, y: 0 })
-
+    const [title, setTitle] = useState('')
 
     const inputValueRef = useRef('')
     const [initialInputValue, setInitialInputValue] = useState('')
     const argumentsRef = useRef(null)
 
-    // const commandsRef = useRef([])
-
     const [results, setResults, resultsRef] = useStateRef([])
     const highlightedCommandRef = useRef(0)
 
     const show = useSelector(state => state.console.show)
-    const commands = useSelector(state => state.console.commands)
+    const [commands, setCommands, commandsRef] = useStateRef([])
+    const concepts = useSelector(state => state.concepts)
 
     const contentId = useSelector(state => state.canvas.mouseInContentId)
-    const content = useSelector(state => state.concept.content?.find(c => c.local.id === contentId))
+
+    useEffect(() => {
+        registerCanvasCommands()
+
+        return () => {
+            clearCommands()
+        }
+    }, [])
 
     useEffect(() => {
         renderResults()
     }, [commands])
+
+    useEffect(() => {
+        if (concepts.length) {
+            let cmds = []
+
+            concepts.forEach(c => {
+                cmds.push({
+                    name: c.name,
+                    displayName: c.name,
+                    icon: require('../icons/cloud.svg').default,
+                    callback: () => dispatch(openConcept(c.id))
+                })
+            })
+
+            setCommands(cmds)
+        }
+    }, [concepts])
+
+    useEffect(() => {
+        window.addEventListener('keydown', onKeyDown)
+
+        return () => {
+            window.removeEventListener('keydown', onKeyDown)
+        }
+    }, [mouse])
 
 
     const runCommand = (cmd) => {
@@ -52,8 +83,7 @@ export default function Console(props) {
 
         let _results = []
 
-        commands.forEach(path => {
-            let cmd = _.get(commands, path)
+        commandsRef.current.forEach(cmd => {
             if (cmd.name.toLowerCase().indexOf(command) !== -1) _results.push(cmd)
         })
 
@@ -66,48 +96,54 @@ export default function Console(props) {
     }
 
     const onKeyDown = (e) => {
-        if (e.key === '/') {
-            if (show) return
+        if (show) {
+            if (e.key === 'Escape') close()
 
-            localPosition.current = {
-                x: mouse.x,
-                y: mouse.y
+            else if (e.key === 'Tab') {
+                e.preventDefault()
+
+                if (resultsRef.current.length > 0) {
+                    let txt = highlightedCommandRef.current.name + " "
+                    setInitialInputValue(txt)
+                    onInput(txt)
+                }
             }
-
-            setTimeout(() => {
-                dispatch(consoleSlice.actions.setShow(true))
-            }, 0)
-
-            let _commands = Object.values(commands.content.create).map(c => c.id)
-
-            dispatch(consoleSlice.actions.setCommands(_commands))
-            dispatch(consoleSlice.actions.setTitle('COMMANDS'))
         }
+        else {
+            if (e.key === '/' || e.key === '\\') {
+                localPosition.current = {
+                    x: mouse.x,
+                    y: mouse.y
+                }
 
-        else if (e.key === 'Escape') close()
+                setTimeout(() => {
+                    dispatch(consoleSlice.actions.setShow(true))
+                    renderResults()
+                }, 0)
 
-        else if (e.key === 'Tab') {
-            e.preventDefault()
+                if (e.key === '/') {
+                    let cmds = contentCommands.filter(c => c.contentId === contentId)
+                    
+                    if (cmds && cmds.length) setCommands(cmds)
+                    else setCommands(canvasCommands)
 
-            if (resultsRef.current.length > 0) {
-                let txt = highlightedCommandRef.current.name + " "
-                setInitialInputValue(txt)
-                onInput(txt)
+                    setTitle('COMMANDS')
+                }
+                else {
+                    setCommands([])
+                    dispatch(fetchConcepts())
+                    setTitle('CONCEPTS')
+                }
             }
         }
     }
 
     function close() {
         dispatch(consoleSlice.actions.setShow(false))
+        inputValueRef.current = ''
+        setInitialInputValue('')
+        highlightedCommandRef.current = 0
     }
-
-    useEffect(() => {
-        window.addEventListener('keydown', onKeyDown)
-
-        return () => {
-            window.removeEventListener('keydown', onKeyDown)
-        }
-    }, [mouse])
 
 
     if (!show) return null
@@ -117,7 +153,7 @@ export default function Console(props) {
             transform: `translate(${localPosition.current.x}px, ${localPosition.current.y}px)`
         }}>
             <InputBox
-                label={props.label}
+                label={title}
                 initialValue={initialInputValue}
                 // focus={true}
                 onInput={onInput}

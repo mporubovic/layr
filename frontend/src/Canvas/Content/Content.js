@@ -2,7 +2,7 @@ import './Content.sass'
 import {useEffect, useRef} from "react";
 import {getComponent} from './contentTypes'
 import {useDispatch, useSelector} from "react-redux";
-import conceptSlice, {updateContent} from "../../state/concept";
+import {updateContent} from "../../state/concept";
 import canvasSlice from "../../state/canvas";
 
 export default function Content(props) {
@@ -83,7 +83,6 @@ export default function Content(props) {
     }, [])
 
     const update = (data, local = false) => {
-        // dispatch(conceptSlice.actions.updateContent({ id, data }))
         dispatch(updateContent({ id, data, local }))
     }
 
@@ -106,9 +105,6 @@ export default function Content(props) {
 
                            // lock={metaDown}
                            update={update}
-
-                           registerCommands={props.registerCommands}
-                           setMenuItems={props.setMenuItems}
 
                            onFocus={props.onFocus}
                            onBlur={props.onBlur}

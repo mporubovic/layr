@@ -1,30 +1,11 @@
 import contentTypes, {getIcon} from "../Content/contentTypes";
-import programs from "../Programs/programs";
+import {state} from "../../state/state";
+import {createConcept} from "../../state/concepts";
+import {createContent} from "../../state/concept";
 
-export const commands = {
-    concept: {
-        create: null,
-        open: null
-    },
-
-    content: {
-        create: {}
-    }
-}
-
-const addCommand = (_path, data) => {
-    let ref = commands
-    let path = _path.split('.')
-
-    for (let i = 0; i < path.length; i++) {
-        let key = path[i]
-        if (!ref[key]) {
-            if (i === path.length-1) ref[key] = { ...data, name: key, id: path }
-            else ref[key] = {}
-        }
-        ref = ref[key]
-    }
-}
+const canvasCommands = []
+const contentCommands = []
+export {canvasCommands, contentCommands}
 
 const commandArgumentToProperty = {
     [contentTypes.TEXT]: 'text',
@@ -33,30 +14,33 @@ const commandArgumentToProperty = {
     [contentTypes.YOUTUBE]: 'src'
 }
 
-export function register(callbacks) {
+export function register() {
     Object.entries(contentTypes).forEach(e => {
         let [key, value] = e
 
-        addCommand(`content.create.${value}` , {
+        canvasCommands.push({
+            name: value,
             displayName: value,
             icon: getIcon(key),
-            callback: (data) => callbacks.createContent(value, { [commandArgumentToProperty[key]]: data }),
+            // callback: (data) => callbacks.createContent(value, { [commandArgumentToProperty[key]]: data }),
+            callback: (data) => state.dispatch(createContent({ type: value, data: { [commandArgumentToProperty[value]]: data } }))
         })
     })
 
-    addCommand('concept.create', {
+    canvasCommands.push({
+        name: 'concept',
         displayName: 'concept',
         icon: require('../icons/cloud.svg').default,
-        callback: (data) => callbacks.createConcept({ name: data }),
+        callback: (data) => state.dispatch(createConcept({ name: data })),
     })
 
-    addCommand('program.wikidata', {
-        displayName: 'wikidata',
-        icon: require('../Programs/Wikidata/Wikidata-logo-top-white.svg').default,
-        callback: (data) => callbacks.openProgram(programs.WIKIDATA),
-    })
+    // addCommand('program.wikidata', {
+    //     displayName: 'wikidata',
+    //     icon: require('../Programs/Wikidata/Wikidata-logo-top-white.svg').default,
+    //     callback: (data) => callbacks.openProgram(programs.WIKIDATA),
+    // })
 }
 
-export function reset() {
-    commands.length = 0
+export function clearCommands() {
+    canvasCommands.length = 0
 }

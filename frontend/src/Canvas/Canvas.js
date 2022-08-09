@@ -1,23 +1,17 @@
 import './Canvas.sass'
 import {useEffect, useRef, useState} from "react";
 import Content from "./Content/Content";
-import useStateRef from "react-usestateref";
 import Resizer from "./Resizer/Resizer";
 import Console from "./Console/Console";
-import contentTypes, {getProcessFunction, getIcon} from "./Content/contentTypes";
-import {v4 as uuidv4} from "uuid"
-
-import _ from "lodash"
+import contentTypes from "./Content/contentTypes";
 import TWEEN from "@tweenjs/tween.js";
-import Frontend from "../frontend";
-import * as Backend from "../../../backend/config.js";
 import Placeholder from "./Content/Placeholder/Placeholder";
-import {register as registerCanvasCommands, reset as resetCanvasCommands, commands} from "./Console/commands";
 import Menu from "./Menu/Menu";
 import {useDispatch, useSelector} from "react-redux";
 import inputManager from "../state/inputManager";
-import conceptSlice from "../state/concept";
+import conceptSlice, {createContent} from "../state/concept";
 import canvasSlice from "../state/canvas";
+import {openConcept} from "../state/concepts";
 
 
 export default function Canvas() {
@@ -34,35 +28,20 @@ export default function Canvas() {
     const y = useSelector(state => state.canvas.y)
     const scale = useSelector(state => state.canvas.scale)
 
-    const [mouseIn, setMouseIn, mouseInRef] = useStateRef(null)
-
-    const [showConsole, setShowConsole, showConsoleRef] = useStateRef(false)
-    const [consolePrefix, setConsolePrefix] = useState()
-    const [consoleCommands, setConsoleCommands] = useState([])
     const mousePosition = useRef({x: window.innerWidth/2, y: window.innerHeight/2})
+    const mouseInContentId = useSelector(state => state.canvas.mouseInContentId)
 
     const concept = useSelector(state => state.concept)
 
     const clickTimeStamp = useRef(0)
 
-    const [placeholders, setPlaceholders] = useState([])
-    // const [placeholders, setPlaceholders] = useState([{x: 0, y: 0, icon: getIcon(contentTypes.LINK)}])
-
-    const [menuItems, setMenuItems] = useState(null)
+    const placeholders = useSelector(state => state.canvas.placeholders)
 
     const [program, setProgram] = useState(null)
     const Program = program && program.component
 
     const onKeyDown = (e) => {
         if (e.key === "Meta") dispatch(inputManager.actions.setMetaDown(true))
-
-        if ((e.key === "/" || e.key === "\\") && !showConsoleRef.current) {
-            if (e.key === "/") {
-            }
-            else {
-
-            }
-        }
     }
 
     const onKeyUp = (e) => {
@@ -77,11 +56,7 @@ export default function Canvas() {
         if (gesture === "zoom") onZoom(e)
         else if (gesture === "pan") onPan(e)
 
-        dispatch(conceptSlice.actions.updateConceptMetaData({
-            canvas: {
-                x, y, scale
-            }
-        }))
+        dispatch(conceptSlice.actions.updateConceptMetaData({ canvas: { x, y, scale } }))
     }
 
     function onZoom(e) {
@@ -113,7 +88,7 @@ export default function Canvas() {
 
     const onMouseMove = (e) => {
         mousePosition.current = {x: e.clientX, y: e.clientY}
-        dispatch(inputManager.actions.setMousePosition({ x: e.clientX, y: e.clientY }))
+        dispatch(inputManager.actions.setMousePosition({ x: e.clientX, y: e.clientY, canvas: mouseToCanvasPosition(e.clientX, e.clientY) }))
     }
 
     const mouseToCanvasPosition = (mx, my) => {
@@ -127,7 +102,7 @@ export default function Canvas() {
         const animationTime = 300
         const sizeMultiplier = 0.8
 
-        let rect = c.local.ref.getBoundingClientRect()
+        let rect = c.local.rect
 
         let windowAspect = window.innerWidth / window.innerHeight
         let contentAspect = rect.width / rect.height
@@ -152,6 +127,7 @@ export default function Canvas() {
                                         y: dimensions.y,
                                         scale: dimensions.scale
                                     }))
+                                    dispatch(conceptSlice.actions.updateConceptMetaData({ canvas: { x, y, scale } })) // TODO: move to canvas state
                                 })
         tween.start()
     }
@@ -162,7 +138,7 @@ export default function Canvas() {
         if (delta < 200) { // double-click
             let contentDiv = e.composedPath().find(el => el.className === 'content')
             if (contentDiv) {
-                let c = concept.content.find(c => c.local.ref === contentDiv)
+                let c = concept.content.find(c => c.local.id === mouseInContentId)
                 if (c) centerContentOnScreen(c)
             }
         }
@@ -186,7 +162,7 @@ export default function Canvas() {
 
                         reader.readAsDataURL(file)
                         reader.onload = (data) => {
-                            getProcessFunction(contentType)(file, data.target.result, (_data) => createContent(contentType, _data))
+                            dispatch(createContent({ type: contentType, data: { file, data: data.target.result }, async: false }))
                         }
                     }
                 }
@@ -206,7 +182,7 @@ export default function Canvas() {
         }
     }, [x, y, scale])
 
-    useEffect(() => {
+    useEffect(() => { // TODO: this gets fired every time mouseInContentId changes
         window.addEventListener("keydown", onKeyDown)
         window.addEventListener("keyup", onKeyUp)
         window.addEventListener("mousemove", onMouseMove)
@@ -224,134 +200,9 @@ export default function Canvas() {
         }
     }, [concept])
 
-    const openProgram = (p) => {
-        setProgram(p)
-    }
-
     useEffect(() => {
-        registerCanvasCommands({
-            createContent: requestContentCreation,
-            createConcept,
-            openProgram: openProgram
-        })
-
-        openConcept(3)
-
-        return () => {
-            resetCanvasCommands()
-        }
+        dispatch(openConcept(3))
     }, [])
-
-
-    function requestContentCreation(type, data) {
-        setShowConsole(false)
-
-        let asyncContent = [contentTypes.IMAGE, contentTypes.VIDEO, contentTypes.LINK]
-
-        if (asyncContent.includes(type)) {
-            let relativePosition = mouseToCanvasPosition(mousePosition.current.x, mousePosition.current.y)
-
-            setPlaceholders((pl) => [
-                ...pl,
-                {...relativePosition, icon: getIcon(type)}
-            ])
-
-            getProcessFunction(type)(data, (_data) => {
-                setPlaceholders(ps => ps.slice(0, ps.length-1))
-                createContent(type, _data, relativePosition)
-
-            })
-        }
-        else {
-            getProcessFunction(type)(data, (_data) => {
-                let ctnt = createContent(type, _data)
-
-                return (__data) => {
-                    // onContentUpdate(ctnt.local.id, __data)
-                }
-            })
-        }
-    }
-
-    function createContent(type, data, position) {
-        let relativePosition = position ?? mouseToCanvasPosition(mousePosition.current.x, mousePosition.current.y)
-
-        let content = {
-            type,
-            ...data,
-
-            x: relativePosition.x,
-            y: relativePosition.y,
-            scale: data?.scale ?? 1,
-
-            local: {
-                id: uuidv4(),
-            },
-
-        }
-
-        let c = _.cloneDeep(concept)
-        c.content.push(content)
-
-        dispatch(conceptSlice.actions.setConcept(c))
-        // postUpdatedConcept(c)
-
-        return content
-
-    }
-
-    function deleteContent(id) {
-        let c = _.cloneDeep(concept)
-        let idx = concept.content.findIndex(c => c.local.id === id)
-
-        if ([contentTypes.IMAGE, contentTypes.VIDEO].includes(c.content[idx].type)) {
-            Frontend.request(Backend.Endpoint.CONTENT, Backend.Operation.DELETE, { content: {src: c.content[idx].src} })
-        }
-
-        c.content.splice(idx, 1)
-
-        // setCurrentResizingContentId(null)
-        dispatch(conceptSlice.actions.setConcept(c))
-
-    }
-
-    function openConcept(id) {
-        setShowConsole(false)
-        Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.ONE, {concept: {id}}).then((r) => {
-            let _concept = r.data.data
-            _concept.content = JSON.parse(_concept.content)
-            _concept.metadata = JSON.parse(_concept.metadata)
-            _concept.content.forEach(c => {
-                c.local = {
-                    id: uuidv4(),
-                }
-            })
-
-            if (_concept.metadata) {
-                dispatch(canvasSlice.actions.setDimensions({
-                    x: _concept.metadata.canvas.x,
-                    y: _concept.metadata.canvas.y,
-                    scale: _concept.metadata.canvas.scale
-                }))
-            }
-
-            dispatch(conceptSlice.actions.setConcept(_concept))
-        })
-    }
-
-    function createConcept(data) {
-        let c = {
-            name: data.name ?? "New concept",
-            content: JSON.stringify([])
-        }
-
-        Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.CREATE, {concept: c}).then((r) => {
-            r.data.data.content = JSON.parse(r.data.data.content)
-            dispatch(conceptSlice.actions.setConcept(r.data.data))
-            setShowConsole(false)
-        })
-
-    }
 
     return (
         <div className="container">
@@ -368,7 +219,6 @@ export default function Canvas() {
                                  contentId={c.local.id}
                             // registerCommands={(cmds) => c.local.commands = cmds}
                                  registerCommands={() => null}
-                                 setMenuItems={setMenuItems}
                         />
                         )
                     )
@@ -390,16 +240,7 @@ export default function Canvas() {
 
             <Console />
 
-            {
-                menuItems &&
-                (
-                    <Menu
-                        items={menuItems}
-                        mousePosition={mousePosition.current}
-                        close={() => setMenuItems(null)}
-                    />
-                )
-            }
+            <Menu />
 
             {
                 program &&

@@ -7,6 +7,7 @@ import "ace-builds/src-noconflict/mode-html";
 import "ace-builds/src-noconflict/ext-language_tools"
 import "ace-builds/webpack-resolver"
 import useStateRef from "react-usestateref";
+import {contentCommands} from "../../Console/commands";
 
 export default function Html(props) {
     const ref = useRef()
@@ -14,6 +15,8 @@ export default function Html(props) {
     const htmlRef = useRef(props.html)
 
     const [active, setActive, activeRef] = useStateRef(false)
+
+    const id = props.local.id
 
     const onChange = (html) => {
         htmlRef.current = html
@@ -29,15 +32,20 @@ export default function Html(props) {
     }
 
     useEffect(() => {
-        props.registerCommands([
+        let commands = [
             {
                 name: "edit",
                 displayName: 'edit',
                 icon: require("../../icons/edit.svg").default,
                 callback: () => setEditing(true),
-                prefix: '/'
             }
-        ])
+        ]
+
+        contentCommands.push(...commands.map(c => {
+            return {...c, contentId: id}
+        }))
+
+        console.log(contentCommands)
 
         window.addEventListener('keydown', onKeyDown)
 

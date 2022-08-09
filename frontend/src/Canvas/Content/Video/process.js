@@ -1,6 +1,6 @@
 import { uploadFile } from "../backendUtils";
 
-export default function (file, data, callback) {
+export default function ({file, data}, callback) {
     uploadFile(file).then(r => {
         let url = r.data.data
         let vid = document.createElement("video")
