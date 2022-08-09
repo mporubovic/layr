@@ -28,7 +28,7 @@ export default function Concepts(req, res) {
     switch (req.body.operation) {
         case Operation.LIST:
             // language=MySQL
-            query = "SELECT * FROM concepts WHERE user_id = ?"
+            query = "SELECT id, name, metadata, created_at, updated_at FROM concepts WHERE user_id = ?"
             values = [userId]
             break
         case Operation.ONE:
