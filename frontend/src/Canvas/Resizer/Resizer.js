@@ -175,7 +175,6 @@ export default function Resizer(props) { // TODO: memoize?
                 dispatch(resizerSlice.actions.setResizingContentId(null))
                 dispatch(conceptSlice.actions.deleteContent(resizingContentId))
                 backspaceCounter.current = 0
-                unDim(content, resizingContentId)
             }
             else {
                 backspaceTimeout.current = setTimeout(() => {
@@ -205,7 +204,7 @@ export default function Resizer(props) { // TODO: memoize?
         backspaceCounter.current = 0
         clearTimeout(backspaceTimeout.current)
 
-        dispatch(conceptSlice.actions.updateContent({ // TODO: throws a bad state call, but works
+        dispatch(conceptSlice.actions.updateContent({
             id,
             data: {
                 local: {

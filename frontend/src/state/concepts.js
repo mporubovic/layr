@@ -31,6 +31,7 @@ export const fetchConcepts = () => {
             let commands = []
 
             concepts.sort((a, b) => new Date(a['updated_at']) > new Date(b['updated_at']) ? -1 : 1)
+            concepts.forEach(c => c.metadata = JSON.parse(c.metadata))
 
             dispatch(conceptsSlice.actions.receiveConcepts(concepts))
 

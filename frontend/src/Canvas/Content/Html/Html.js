@@ -45,8 +45,6 @@ export default function Html(props) {
             return {...c, contentId: id}
         }))
 
-        console.log(contentCommands)
-
         window.addEventListener('keydown', onKeyDown)
 
         return () => {
