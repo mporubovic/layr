@@ -1,8 +1,10 @@
-import {useRef, useEffect} from "react";
+import {useRef, useEffect, useState} from "react";
 import styles from './Resizer.module.sass'
-import {useDispatch, useSelector} from "react-redux";
+import {shallowEqual, useDispatch, useSelector} from "react-redux";
 import conceptSlice, {updateContent} from "../../state/concept";
 import resizerSlice from "../../state/resizer";
+import useStateRef from "react-usestateref";
+import {canvasXtoDomX, canvasYtoDomY, getContentDomRect} from "../Canvas";
 
 export default function Resizer(props) { // TODO: memoize?
     const dispatch = useDispatch()
@@ -10,11 +12,12 @@ export default function Resizer(props) { // TODO: memoize?
     const outerPadding = 20
     const innerPadding = 5
 
-    const pointerDownRef = useRef(false)
+    const [pointerDown, setPointerDown, pointerDownRef] = useStateRef(false)
     const cornerRef = useRef(null)
     const div = useRef()
 
     const active = useRef(false)
+    const domRect = useRef() // TODO: maybe let domRect is enough?
 
     const backspaceCounter = useRef(0)
     const backspaceTimeout = useRef(null)
@@ -22,49 +25,32 @@ export default function Resizer(props) { // TODO: memoize?
     const metaDown = useSelector(state => state.inputManager.key.Meta.down)
     const mouseInContentId = useSelector(state => state.canvas.mouseInContentId)
     const canvasScale = useSelector(state => state.canvas.scale)
-    const resizingContentId = useSelector(state => state.resizer.resizingContentId)
+    const resizingContentIds = useSelector(state => state.resizer.resizingContentIds)
 
     useEffect(() => {
-        if (metaDown && mouseInContentId && !resizingContentId) {
-            dispatch(resizerSlice.actions.setResizingContentId(mouseInContentId))
+        if (metaDown && mouseInContentId && pointerDownRef.current) {
+            if (!resizingContentIds.includes(mouseInContentId)) {
+                dispatch(resizerSlice.actions.setResizingContentIds([...resizingContentIds, mouseInContentId]))
+            }
         }
-        else if (!metaDown && resizingContentId) {
-            unDim(content, resizingContentId)
-            active.current = false
-            dispatch(resizerSlice.actions.setResizingContentId(null))
+    }, [metaDown, mouseInContentId, pointerDown])
+
+    const contents = useSelector(state => state.concept.content?.filter(c => resizingContentIds.includes(c.local.id)) || [], shallowEqual)
+
+    useEffect(() => {
+        window.addEventListener('pointermove', onPointerMove)
+        window.addEventListener('pointerdown', onPointerDown)
+        window.addEventListener('pointerup', onPointerUp)
+        window.addEventListener('keydown', onKeyDown)
+
+        return () => {
+            window.removeEventListener('pointermove', onPointerMove)
+            window.removeEventListener('pointerup', onPointerUp)
+            window.removeEventListener('pointerdown', onPointerDown)
+            window.removeEventListener('keydown', onKeyDown)
+
         }
-
-        else if (mouseInContentId && resizingContentId && resizingContentId !== mouseInContentId) {
-            unDim(content, resizingContentId)
-            active.current = false
-            dispatch(resizerSlice.actions.setResizingContentId(mouseInContentId))
-        }
-    }, [metaDown, mouseInContentId, resizingContentId])
-
-    const content = useSelector(state => state.concept.content?.find(c => c.local.id === resizingContentId))
-    const contentRect = content?.local.rect
-
-    // if (show) {
-    //     // debugger
-    //
-    //     const contentRect = content.local.rect
-    //
-    //     style =
-    //         props.relative
-    //         ?
-    //         {
-    //             transform: `translate(${0 - (outerPadding + innerPadding)}px, ${0 - (outerPadding + innerPadding)}px)`,
-    //             height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
-    //             width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
-    //         }
-    //         :
-    //         {
-    //             transform: `translate(${contentRect.x - (outerPadding + innerPadding)}px, ${contentRect.y - (outerPadding + innerPadding)}px)`,
-    //             height: contentRect.height + outerPadding*2 + innerPadding*2 + 'px',
-    //             width: contentRect.width + outerPadding*2 + innerPadding*2 + 'px',
-    //         }
-    //
-    // }
+    }, [contents])
 
 
     function corner(c) {
@@ -101,23 +87,22 @@ export default function Resizer(props) { // TODO: memoize?
 
     }
 
-    function resize(movX, movY) {
+    function resize(content, movX, movY) {
         let x = content.x
         let y = content.y
         let dx = (movX/canvasScale)
         let dy = (movY/canvasScale)
 
-        let rect = contentRect
+        let rect = getContentDomRect(content)
+
         let aspect = rect.width/rect.height
         let contentScale = content.scale
 
         let next = {}
 
-        // debugger
-
         switch (cornerRef.current) {
             case 'br':
-                next.scale = contentScale + (movY)*contentScale/rect.height
+                next.scale = contentScale + (movY)*contentScale/rect.height // TODO: what is this doing?
                 break
 
             case 'tr':
@@ -144,53 +129,65 @@ export default function Resizer(props) { // TODO: memoize?
                 next.y = y + dy
                 break
         }
-        dispatch(updateContent( { id: resizingContentId, data: next }))
+        dispatch(updateContent( { id: content.local.id, data: next }))
     }
 
     function onPointerDown() {
-        pointerDownRef.current = true
+        setPointerDown(true)
     }
 
     function onPointerUp() {
-        pointerDownRef.current = false
+        setPointerDown(false)
         active.current = false
-        // cornerRef.current = null
-        // document.body.style.cursor = 'auto'
     }
 
     function onPointerMove(e) {
-        if (content && pointerDownRef.current) {
+        if (contents.length && pointerDownRef.current) {
             if (!active.current) active.current = true
-            resize(e.movementX, e.movementY)
+            contents.forEach(c => {
+                resize(c, e.movementX, e.movementY)
+            })
         }
     }
 
+    function close() {
+        contents.forEach(c => unDim(c))
+        active.current = false
+        domRect.current = null
+        backspaceCounter.current = 0
+        dispatch(resizerSlice.actions.setResizingContentIds([]))
+    }
+
     function onKeyDown(e) {
-        if (!resizingContentId) return
+        if (!contents.length) return
 
         if (e.key === 'Backspace') {
             backspaceCounter.current++
 
             if (backspaceCounter.current === 2) {
-                dispatch(resizerSlice.actions.setResizingContentId(null))
-                dispatch(conceptSlice.actions.deleteContent(resizingContentId))
-                backspaceCounter.current = 0
+                resizingContentIds.forEach(id => dispatch(conceptSlice.actions.deleteContent(id)))
+                close()
             }
             else {
                 backspaceTimeout.current = setTimeout(() => {
                     backspaceCounter.current = 0
-                    unDim(content, resizingContentId)
+                    contents.forEach(c => unDim(c))
                 }, 1000)
 
-                dim()
+                contents.forEach(c => dim(c))
 
             }
         }
+
+        else if (e.key === 'Escape') {
+            close()
+        }
     }
 
-    function dim() {
+
+    function dim(content) {
         dispatch(conceptSlice.actions.updateContent({
-            id: resizingContentId,
+            id: content.local.id,
             data: {
                 local: {
                     ...content.local,
@@ -200,12 +197,12 @@ export default function Resizer(props) { // TODO: memoize?
         }))
     }
 
-    function unDim(content, id) {
+    function unDim(content) {
         backspaceCounter.current = 0
         clearTimeout(backspaceTimeout.current)
 
         dispatch(conceptSlice.actions.updateContent({
-            id,
+            id: content.local.id,
             data: {
                 local: {
                     ...content.local,
@@ -215,29 +212,34 @@ export default function Resizer(props) { // TODO: memoize?
         }))
     }
 
-    useEffect(() => {
-        window.addEventListener('pointermove', onPointerMove)
-        window.addEventListener('pointerdown', onPointerDown)
-        window.addEventListener('pointerup', onPointerUp)
-        window.addEventListener('keydown', onKeyDown)
+    if (!contents.length) return
 
-        return () => {
-            window.removeEventListener('pointermove', onPointerMove)
-            window.removeEventListener('pointerup', onPointerUp)
-            window.removeEventListener('pointerdown', onPointerDown)
-            window.removeEventListener('keydown', onKeyDown)
-
+    domRect.current = {
+        min: {
+            x: Infinity,
+            y: Infinity
+        },
+        max: {
+            x: -Infinity,
+            y: -Infinity
         }
-    }, [content])
+    }
 
-    if (!resizingContentId) return null
+    contents.forEach(c => {
+        if (canvasXtoDomX(c.x) < domRect.current.min.x) domRect.current.min.x = canvasXtoDomX(c.x)
+        if (canvasYtoDomY(c.y) < domRect.current.min.y) domRect.current.min.y = canvasYtoDomY(c.y)
+
+        if (canvasXtoDomX(c.x + c.width) > domRect.current.max.x) domRect.current.max.x = canvasXtoDomX(c.x + c.width)
+        if (canvasYtoDomY(c.y + c.height) > domRect.current.max.y) domRect.current.max.y = canvasYtoDomY(c.y + c.height)
+    })
+
 
     return (
         <div className={styles.resizer} ref={div}
              style={{
-                 transform: `translate(${contentRect.x - (outerPadding + innerPadding)}px, ${contentRect.y - (outerPadding + innerPadding)}px)`,
-                 height: contentRect.height + outerPadding * 2 + innerPadding * 2 + 'px',
-                 width: contentRect.width + outerPadding * 2 + innerPadding * 2 + 'px',
+                 transform: `translate(${domRect.current.min.x - (outerPadding + innerPadding)}px, ${domRect.current.min.y - (outerPadding + innerPadding)}px)`,
+                 height: (domRect.current.max.y - domRect.current.min.y) + outerPadding * 2 + innerPadding * 2 + 'px',
+                 width: (domRect.current.max.x - domRect.current.min.x) + outerPadding * 2 + innerPadding * 2 + 'px',
              }}
         >
 

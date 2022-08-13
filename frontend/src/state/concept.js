@@ -108,7 +108,7 @@ export const updateContent = ({ id, data, local = false }) => {
 
             c.content = JSON.stringify(c.content)
             c.metadata = JSON.stringify(c.metadata)
-            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, { concept: c})
+            Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.UPDATE, { concept: c })
         }, timeout)
     }
 

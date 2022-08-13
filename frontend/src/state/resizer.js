@@ -2,15 +2,15 @@ import {createSlice} from "@reduxjs/toolkit";
 
 
 const initialState = {
-    resizingContentId: null
+    resizingContentIds: []
 }
 
 const resizerSlice = createSlice({
     name: 'resizerSlice',
     initialState,
     reducers: {
-        setResizingContentId: (state, action) => {
-            state.resizingContentId = action.payload
+        setResizingContentIds: (state, action) => {
+            state.resizingContentIds = action.payload
         }
     }
 })

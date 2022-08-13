@@ -4,6 +4,7 @@ import {getComponent} from './contentTypes'
 import {useDispatch, useSelector} from "react-redux";
 import {updateContent} from "../../state/concept";
 import canvasSlice from "../../state/canvas";
+import {domToCanvasPosition} from "../Canvas";
 
 export default function Content(props) {
 
@@ -20,8 +21,8 @@ export default function Content(props) {
     const canvasY = useSelector(state => state.canvas.y)
     const canvasScale = useSelector(state => state.canvas.scale)
 
-    const resizerActive = useSelector(state => state.resizer.resizingContentId)
-    const isSelfResizing = resizerActive === id
+    const resizingContentIds = useSelector(state => state.resizer.resizingContentIds)
+    const isSelfResizing = resizingContentIds.includes(id)
 
     const x = content.x
     const y = content.y
@@ -65,22 +66,16 @@ export default function Content(props) {
 
     function recalculateRect() {
         let ref = contentRef.current
-        let rect = ref.getBoundingClientRect().toJSON()
+        let rect = ref.getBoundingClientRect()
 
-        update({
-            local: {
-                ...content.local,
-                rect,
-            }
-        }, true)
+        let { x: x1, y: y1 } = domToCanvasPosition(rect.x, rect.y)
+        let { x: x2, y: y2 } = domToCanvasPosition(rect.x + rect.width, rect.y + rect.height)
+
+        update({ // TODO: not necessary to send to backend
+            width: Math.abs(x2 - x1),
+            height: Math.abs(y2 - y1)
+        })
     }
-
-    useEffect(() => {
-        // (cmds) => c.local.commands = cmds
-
-
-
-    }, [])
 
     const update = (data, local = false) => {
         dispatch(updateContent({ id, data, local }))

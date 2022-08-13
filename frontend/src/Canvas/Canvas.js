@@ -13,8 +13,11 @@ import conceptSlice, {createContent} from "../state/concept";
 import canvasSlice from "../state/canvas";
 import {openConcept} from "../state/concepts";
 
+let domToCanvasPosition, domXtoCanvasX, domYtoCanvasY, canvasXtoDomX, canvasYtoDomY, getContentDomRect
+export { domToCanvasPosition, domXtoCanvasX, domYtoCanvasY, canvasXtoDomX, canvasYtoDomY, getContentDomRect }
 
 export default function Canvas() {
+    const dispatch = useDispatch()
 
     const scaleMax = 10
     const scaleMin = 0.1
@@ -40,11 +43,17 @@ export default function Canvas() {
     const Program = program && program.component
 
     const onKeyDown = (e) => {
-        if (e.key === "Meta") dispatch(inputManager.actions.setMetaDown(true))
+        if (e.key === "Meta") {
+            dispatch(inputManager.actions.setMetaDown(true))
+            dispatch(canvasSlice.actions.setCursorColor('yellow'))
+        }
     }
 
     const onKeyUp = (e) => {
-        if (e.key === "Meta") dispatch(inputManager.actions.setMetaDown(false))
+        if (e.key === "Meta") {
+            dispatch(inputManager.actions.setMetaDown(false))
+            dispatch(canvasSlice.actions.setCursorColor('magenta'))
+        }
     }
 
     function onWheel(e) {
@@ -87,21 +96,47 @@ export default function Canvas() {
 
     const onMouseMove = (e) => {
         mousePosition.current = {x: e.clientX, y: e.clientY}
-        dispatch(inputManager.actions.setMousePosition({ x: e.clientX, y: e.clientY, canvas: mouseToCanvasPosition(e.clientX, e.clientY) }))
+        dispatch(inputManager.actions.setMousePosition({ x: e.clientX, y: e.clientY, canvas: domToCanvasPosition(e.clientX, e.clientY) }))
     }
 
-    const mouseToCanvasPosition = (mx, my) => {
+    domXtoCanvasX = (mx) => {
+        return -(window.innerWidth/2 - mx + x)/scale
+    }
+
+    domYtoCanvasY = (my) => {
+        return -(window.innerHeight/2 - my + y)/scale
+    }
+
+    domToCanvasPosition = (mx, my) => {
         return {
-            x: -(window.innerWidth/2 - mx + x)/scale,
-            y: -(window.innerHeight/2 - my + y)/scale
+            x: domXtoCanvasX(mx),
+            y: domYtoCanvasY(my)
         }
     }
+
+    canvasXtoDomX = (cx) => {
+        return window.innerWidth/2 + x + cx*scale
+    }
+
+    canvasYtoDomY = (cy) => {
+        return window.innerHeight/2 + y + cy*scale
+    }
+
+    getContentDomRect = (content) => {
+        return {
+            x: canvasXtoDomX(content.x),
+            y: canvasYtoDomY(content.y),
+            width: Math.abs(canvasXtoDomX(content.x + content.width) - canvasXtoDomX(content.x)),
+            height: Math.abs(canvasYtoDomY(content.y + content.height) - canvasYtoDomY(content.y)),
+        }
+    }
+
 
     const centerContentOnScreen = (c) => {
         const animationTime = 300
         const sizeMultiplier = 0.8
 
-        let rect = c.local.rect
+        let rect = getContentDomRect(c)
 
         let windowAspect = window.innerWidth / window.innerHeight
         let contentAspect = rect.width / rect.height
@@ -128,7 +163,7 @@ export default function Canvas() {
                                     }))
                                     dispatch(conceptSlice.actions.updateConceptMetaData({ canvas: { x, y, scale } })) // TODO: move to canvas state
                                 })
-        tween.start()
+                                .start()
     }
 
     const onClick = (e) => {

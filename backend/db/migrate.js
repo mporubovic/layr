@@ -4,7 +4,7 @@ import fs from "fs";
 // https://stackoverflow.com/a/65402918
 import { createRequire } from "module"
 const require = createRequire(import.meta.url)
-const defaultConcepts = require("../backup/concepts-2022-08-09T20:13:41.166Z.json")
+const defaultConcepts = require("../backup/concepts-2022-08-13T20:35:55.934Z.json")
 
 const sql = fs.readFileSync('./schema.sql', 'utf8')
 
