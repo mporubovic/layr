@@ -19,8 +19,7 @@ export default function Canvas() {
     const scaleMax = 10
     const scaleMin = 0.1
     const zoomStep = 1 / 100 // the higher the zoom step, the faster it zooms
-
-    const dispatch = useDispatch()
+    const cursorColor = useSelector(state => state.canvas.cursorColor)
 
     const div = useRef(null)
 

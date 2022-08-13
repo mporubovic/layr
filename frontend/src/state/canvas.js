@@ -5,7 +5,8 @@ const initialState = {
     x: 0,
     y: 0,
     scale: 0,
-    placeholders: []
+    placeholders: [],
+    cursorColor: 'magenta'
 }
 
 const canvasSlice = createSlice({
@@ -27,6 +28,9 @@ const canvasSlice = createSlice({
         removePlaceholder: (state, action) => {
             let idx = state.placeholders.findIndex(p => p.id === action.payload)
             state.placeholders.splice(idx, 1)
+        },
+        setCursorColor: (state, action) => {
+            state.cursorColor = action.payload
         }
     }
 })
