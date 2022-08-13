@@ -209,7 +209,8 @@ export default function Canvas() {
                 concept && (<div className="title">{ concept.name }</div>)
             }
             <div className="canvas" ref={div} style={{
-                transform: `translate(${x}px, ${y}px) scale(${scale})`
+                transform: `translate(${x}px, ${y}px) scale(${scale})`,
+                cursor: `url(${require(`./cursor-${cursorColor}.svg`)}) 10 10, auto`
             }}>
 
                 {

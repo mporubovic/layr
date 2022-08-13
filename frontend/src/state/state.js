@@ -15,6 +15,9 @@ export const state = configureStore({
         concept: conceptSlice.reducer,
         console: consoleSlice.reducer,
         concepts: conceptsSlice.reducer,
-        menu: menuSlice.reducer
+        menu: menuSlice.reducer,
+    },
+    devTools: {
+        actionCreators: canvasSlice.actions
     }
 })
