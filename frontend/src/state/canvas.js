@@ -17,9 +17,9 @@ const canvasSlice = createSlice({
         },
         setDimensions: (state, action) => {
             let { x, y, scale } = action.payload
-            if (x) state.x = x
-            if (y) state.y = y
-            if (scale) state.scale = scale
+            if (x !== undefined) state.x = x
+            if (y !== undefined) state.y = y
+            if (scale !== undefined) state.scale = scale
         },
         addPlaceholder: (state, action) => {
             state.placeholders.push(action.payload)
