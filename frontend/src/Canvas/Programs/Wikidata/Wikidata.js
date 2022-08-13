@@ -5,7 +5,7 @@ import InputBox from "../../../UI/InputBox/InputBox";
 import List from "../../../UI/List/List";
 import consoleStyles from '../../Console/Console.module.sass'
 import Resizer from "../../Resizer/Resizer";
-import {canvasCommands} from "../../canvasCommands";
+import {commands} from "../../Console/commands";
 import useStateRef from "react-usestateref";
 
 export default function Wikidata(props) {

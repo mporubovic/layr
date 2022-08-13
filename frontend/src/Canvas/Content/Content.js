@@ -1,99 +1,85 @@
 import './Content.sass'
-
-import {useEffect, useRef, memo, forwardRef, useImperativeHandle} from "react";
-
-import useStateRef from "react-usestateref";
-
+import {useEffect, useRef} from "react";
 import {getComponent} from './contentTypes'
+import {useDispatch, useSelector} from "react-redux";
+import {updateContent} from "../../state/concept";
+import canvasSlice from "../../state/canvas";
+import {domToCanvasPosition} from "../Canvas";
 
-export default forwardRef((props, inRef) => {
+export default function Content(props) {
+
+    const dispatch = useDispatch()
 
     const contentRef = useRef()
-    useImperativeHandle(inRef, () => contentRef.current, [contentRef])
-    // https://stackoverflow.com/questions/57278120/using-react-callback-ref-with-forwarded-ref
 
-    const content = props.content
+    const metaDown = useSelector(state => state.inputManager.key.Meta.down)
 
-    const contentWrapperDiv = useRef()
+    const id = props.contentId
+    const content = useSelector(state => state.concept.content.find(c => c.local.id === id))
 
-    const [x, setX, xRef] = useStateRef(content.x)
-    const [y, setY, yRef] = useStateRef(content.y)
-    const [scale, setScale, scaleRef] = useStateRef(content.scale)
+    const canvasX = useSelector(state => state.canvas.x)
+    const canvasY = useSelector(state => state.canvas.y)
+    const canvasScale = useSelector(state => state.canvas.scale)
 
-    function resize() {
-        if (!props.resizeDelta) return
+    const resizingContentIds = useSelector(state => state.resizer.resizingContentIds)
+    const isSelfResizing = resizingContentIds.includes(id)
 
-        let x = xRef.current
-        let y = yRef.current
-        let dx = (props.resizeDelta.dx/props.canvasScale)
-        let dy = (props.resizeDelta.dy/props.canvasScale)
+    const x = content.x
+    const y = content.y
+    const scale = content.scale
 
-        let rect = contentRef.current.getBoundingClientRect()
-        let aspect = rect.width/rect.height
+    const onMouseEnter = (e) => {
+        dispatch(canvasSlice.actions.setMouseInContentId(id))
+        recalculateRect()
+    }
 
-        switch (props.resizeDelta.corner) {
-            case "br":
-                setScale(scaleRef.current + (props.resizeDelta.dy)*scaleRef.current/rect.height)
-                break
-
-            case "tr":
-                setScale(scaleRef.current - (props.resizeDelta.dy)*scaleRef.current/rect.height)
-                // setScale(scaleRef.current - dy*scaleRef.current/rect.height)
-                setY(y + dy)
-                // console.log(dy, scaleRef.current, rect.height, dy*scaleRef.current)
-                // setY(y - dy*scaleRef.current/rect.height)
-                break
-
-            case "tl":
-                setX(x + dy)
-                setY(y + dy)
-                // setScale(scaleRef.current - )
-
-                break
-
-            case "bl":
-                console.log()
-                setScale(scaleRef.current + (props.resizeDelta.dy)*scaleRef.current/rect.height)
-                setX(x - ((props.resizeDelta.dy)*scaleRef.current/rect.height)*rect.width)
-                break
-
-            case "t":
-            case "l":
-            case "r":
-            case "b":
-                break
-
-            default:
-                setX(x + dx)
-                setY(y + dy)
-        }
-
-        props.update({
-            x: xRef.current,
-            y: yRef.current,
-            scale: scaleRef.current,
-            local: {
-                ...content.local,
-                rect: rect
-            }
-        })
+    const onMouseLeave = (e) => {
+        dispatch(canvasSlice.actions.setMouseInContentId(null))
     }
 
     useEffect(() => {
-        resize()
-    }, [props.resizeDelta])
+        let ref = contentRef.current
+
+        ref.addEventListener('mouseenter', onMouseEnter)
+        ref.addEventListener('mouseleave', onMouseLeave)
+
+        return () => {
+            ref.removeEventListener('mouseenter', onMouseEnter)
+            ref.removeEventListener('mouseleave', onMouseLeave)
+        }
+
+    }, [contentRef])
 
     useEffect(() => {
-        if (contentRef) {
-            let rect = contentRef.current.getBoundingClientRect()
-            props.update({
-                local: {
-                    ...content.local,
-                    rect
-                }
-            })
+        if (contentRef.current) {
+            recalculateRect()
         }
-    }, [contentRef])
+    }, [x, y, scale])
+
+    useEffect(() => {
+
+        if (contentRef.current && isSelfResizing) {
+            recalculateRect()
+        }
+
+    }, [canvasX, canvasY, canvasScale])
+
+    function recalculateRect() {
+        let ref = contentRef.current
+        let rect = ref.getBoundingClientRect()
+
+        let { x: x1, y: y1 } = domToCanvasPosition(rect.x, rect.y)
+        let { x: x2, y: y2 } = domToCanvasPosition(rect.x + rect.width, rect.y + rect.height)
+
+        update({ // TODO: not necessary to send to backend
+            width: Math.abs(x2 - x1),
+            height: Math.abs(y2 - y1)
+        })
+    }
+
+    const update = (data, local = false) => {
+        dispatch(updateContent({ id, data, local }))
+    }
 
     const Component = getComponent(content.type)
 
@@ -106,13 +92,14 @@ export default forwardRef((props, inRef) => {
             {
                 <Component {...content}
                            scale={scale}
-                           style={{...props.style, ...(props.lock) && { pointerEvents: "none", userSelect: "none"}}}
+                           style={{
+                               ...props.style,
+                               ...(metaDown) && { pointerEvents: "none", userSelect: "none"},
+                               ...(content.local.dim) && { opacity: 0.5 }
+                           }}
 
-                           lock={props.lock}
-                           update={props.update}
-
-                           registerCommands={props.registerCommands}
-                           setMenuItems={props.setMenuItems}
+                           // lock={metaDown}
+                           update={update}
 
                            onFocus={props.onFocus}
                            onBlur={props.onBlur}
@@ -122,4 +109,4 @@ export default forwardRef((props, inRef) => {
 
         </div>
     )
-})
+}

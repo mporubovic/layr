@@ -28,7 +28,7 @@ export default function Concepts(req, res) {
     switch (req.body.operation) {
         case Operation.LIST:
             // language=MySQL
-            query = "SELECT * FROM concepts WHERE user_id = ?"
+            query = "SELECT id, name, metadata, created_at, updated_at FROM concepts WHERE user_id = ?"
             values = [userId]
             break
         case Operation.ONE:
@@ -47,9 +47,24 @@ export default function Concepts(req, res) {
             process = (d) => d[1][0]
             break
         case Operation.UPDATE:
-            // language=MySQL
-            query = "UPDATE concepts SET name = ?, content = ?, metadata = ? WHERE id = ?"
-            values = [req.body.concept.name, req.body.concept.content, req.body.concept.metadata, req.body.concept.id]
+            query = "UPDATE concepts SET "
+
+            let whitelist = ['name', 'content', 'metadata']
+
+            Object.entries(req.body.concept)
+                    .filter(e => whitelist.includes(e[0]))
+                    .forEach((e, idx, arr) => {
+                        let key = e[0]
+                        let value = e[1]
+
+                        query += `${key} = ${connection.escape(value)}`
+
+                        if (idx === arr.length - 1) query += ' '
+                        else query += ', '
+                    })
+
+            query += `WHERE id = ${connection.escape(req.body.concept.id)}`
+
             guard = (next, err) => userGuard(req.body.concept.id, next, err)
             process = (d) => null
             break
