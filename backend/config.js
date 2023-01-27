@@ -5,7 +5,7 @@ const Server = {
     STORAGE_PATH: '/storage',
     CACHE_PATH: '/cache',
     BACKUP_PATH: '/backup',
-    BACKUP_INTERVAL: 5 * 60 * 1000,
+    BACKUP_INTERVAL: 1000 * 60 * 30,
 }
 
 Server.URL = `http://${Server.IP}:${Server.PORT}`
