@@ -1,6 +1,6 @@
 import styles from './Link.module.sass'
 import defaultIcon from './Link_black.svg'
-import {Server} from "../../../../../backend/config.js"
+import {Server} from "../../../config"
 
 export default function Link(props) {
 

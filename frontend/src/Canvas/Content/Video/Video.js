@@ -1,5 +1,5 @@
 import './Video.sass'
-import * as Backend from "../../../../../backend/config.js"
+import * as Backend from "../../../config"
 
 export default function Video(props) {
     return (

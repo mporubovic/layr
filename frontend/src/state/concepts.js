@@ -1,10 +1,11 @@
 import {createSlice} from "@reduxjs/toolkit";
 import Frontend from "../frontend";
-import * as Backend from "../../../backend/config";
+import * as Backend from "../config";
 import conceptSlice from "./concept";
 import _ from "lodash";
 import {v4 as uuidv4} from "uuid";
 import canvasSlice from "./canvas";
+import demo from "../demo.json";
 
 const initialState = []
 
@@ -64,8 +65,7 @@ export const createConcept = (data) => {
 
 export const openConcept = (id) => {
     return function openConceptThunk(dispatch, getState) {
-        Frontend.request(Backend.Endpoint.CONCEPTS, Backend.Operation.ONE, { concept: {id} }).then((r) => {
-            let _concept = r.data.data
+            let _concept = demo
             _concept.content = JSON.parse(_concept.content)
             _concept.metadata = JSON.parse(_concept.metadata)
             _concept.content.forEach(c => {
@@ -83,6 +83,5 @@ export const openConcept = (id) => {
             }
 
             dispatch(conceptSlice.actions.setConcept(_concept))
-        })
-    }
+        }
 }

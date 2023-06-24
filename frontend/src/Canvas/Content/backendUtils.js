@@ -1,5 +1,5 @@
 import Frontend from "../../frontend";
-import * as Backend from "../../../../backend/config.js"
+import * as Backend from "../../config"
 
 const errorHandler = (response) => {
     if (response.data.status === Backend.Status.ERROR) {

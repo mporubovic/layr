@@ -1,7 +1,7 @@
 import {createSlice} from "@reduxjs/toolkit";
 import _ from "lodash";
 import Frontend from "../frontend";
-import * as Backend from "../../../backend/config";
+import * as Backend from "../config";
 import contentTypes, {getIcon, getProcessFunction} from "../Canvas/Content/contentTypes";
 import {v4 as uuidv4} from "uuid";
 import canvasSlice from "./canvas";
